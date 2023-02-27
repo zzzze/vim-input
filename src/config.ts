@@ -9,7 +9,7 @@ export default {
    * @param msg
    * @param code
    */
-  showMsg (msg: string, _code: string) {
+  showMsg (msg: string, _code?: string) {
     alert(msg)
   },
 

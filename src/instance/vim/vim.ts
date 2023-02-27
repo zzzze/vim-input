@@ -1,5 +1,6 @@
 import { VimBase, VimMode } from './init'
 import type { TextUtil } from '../text/text'
+import type { Data } from '../app/app'
 
 const _ENTER_ = '\n'
 
@@ -285,12 +286,12 @@ export class Vim extends VimBase {
     return this.textUtil.getText(sp, ep + 1)
   }
 
-  backToHistory (list) {
-    if (list) {
+  backToHistory (list?: Data[]) {
+    if (Array.isArray(list) && list.length > 0) {
       const data = list.pop()
       if (data !== undefined) {
         this.textUtil.setText(data.t)
-        this.textUtil.select(data.p, data.p + 1)
+        this.textUtil.select(data.p ?? 0, (data.p ?? 0) + 1)
       }
     }
   }
@@ -342,7 +343,7 @@ export class Vim extends VimBase {
     }
   }
 
-  copyWord (p: number) {
+  copyWord (p?: number) {
     const poses = this.textUtil.getCurrWordPos(p)
     return poses[1]
   }

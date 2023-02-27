@@ -1,5 +1,6 @@
 import type { App as AppType } from './instance/app/app'
 import { VimMode } from './instance/vim/init'
+import * as filter from './filter'
 
 // const GENERAL = 'general_mode'
 // const VISUAL = 'visual_mode'
@@ -30,7 +31,7 @@ export default class Bind {
       if (this.App === undefined) {
         return
       }
-      let code = this.getCode(ev)
+      let code: number | string = this.getCode(ev)
       this.App._log('mode:' + this.App.vim.currentMode)
       if (replaced) {
         this.App.recordText()
@@ -39,10 +40,10 @@ export default class Bind {
       if (filter.code(this.App, code)) {
         const unionCode = this.App.isUnionCode(code, -1)
         const vimKeys = this.App.router.getKeys()
-        if (unionCode && (vimKeys[unionCode] != null)) {
+        if (unionCode !== undefined && (vimKeys[unionCode] != null)) {
           code = unionCode
         }
-        this.App._log('key code:' + code)
+        this.App._log(`key code: ${code}`)
         const num = this.App.numberManager(code)
         this.App.parseRoute(code, ev, num)
       }
@@ -101,9 +102,10 @@ export default class Bind {
     this.App._fire('input', e, replaced)
   }
 
-  getCode (ev: KeyboardEvent | InputEvent) {
+  getCode (ev: KeyboardEvent | InputEvent): number {
+    // FIXME: Determine type of event.
     // eslint-disable-next-line
-    return ev.keyCode || ev.which || ev.charCode
+    return (ev as any).keyCode || (ev as any).which || (ev as any).charCode
   }
 }
 

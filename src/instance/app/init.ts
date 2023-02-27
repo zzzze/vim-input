@@ -19,30 +19,30 @@ export class AppBase {
   //  */
   // config: typeof config | undefined = undefined
 
-  /**
-   * Router instance
-   */
-  router: Router | undefined = undefined
+  // /**
+  //  * Router instance
+  //  */
+  // router: Router | undefined = undefined
 
   // /**
   //  * Vim instance
   //  */
   // vim: Vim | undefined = undefined
 
-  /**
-   * TextUtil instance
-   */
-  textUtil: TextUtil | undefined = undefined
+  // /**
+  //  * TextUtil instance
+  //  */
+  // textUtil: TextUtil | undefined = undefined
 
-  /**
-   * clipboard of app
-   */
-  clipboard = undefined
+  // /**
+  //  * clipboard of app
+  //  */
+  // clipboard?: string = undefined
 
-  /**
-   * app do list
-   */
-  doList = []
+  // /**
+  //  * app do list
+  //  */
+  // doList = []
 
   /**
    * app do list deep
@@ -52,7 +52,7 @@ export class AppBase {
   /**
    * previous key code
    */
-  prevCode: string | undefined = undefined
+  prevCode: number | undefined = undefined
 
   prevCodeTime = 0
 

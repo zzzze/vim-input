@@ -19,6 +19,8 @@ export function createConfig ({ input = 'index.ts', pkg, external = [] }) {
         .concat(builtinModules)
         .concat(external),
       onwarn: (warning) => {
+        // FIXME: remove suppressing eval warnings
+        if (warning.code === 'EVAL') return
         throw Object.assign(new Error(), warning)
       },
       strictDeprecations: true,
@@ -29,12 +31,14 @@ export function createConfig ({ input = 'index.ts', pkg, external = [] }) {
       },
       plugins: [
         terser(),
-        typescript({ sourceMap: true, declaration: true, outDir: 'dist-js' }),
+        typescript({ sourceMap: true, declaration: true, outDir: 'dist' }),
       ],
     },
     {
       input,
       onwarn: (warning) => {
+        // FIXME: remove suppressing eval warnings
+        if (warning.code === 'EVAL') return
         throw Object.assign(new Error(), warning)
       },
       strictDeprecations: true,
@@ -47,7 +51,7 @@ export function createConfig ({ input = 'index.ts', pkg, external = [] }) {
       plugins: [
         resolve(),
         terser(),
-        typescript({ sourceMap: true, declaration: true, outDir: 'dist-js' }),
+        typescript({ sourceMap: true, declaration: true, outDir: 'dist' }),
       ],
     },
   ]

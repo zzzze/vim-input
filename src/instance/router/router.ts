@@ -8,7 +8,7 @@ interface Key {
 }
 
 export class Router {
-  currentCode: string | undefined
+  currentCode: string | number | undefined
   _keys: Record<string, Key | undefined>
 
   constructor () {
@@ -16,7 +16,7 @@ export class Router {
     this._keys = {}
   }
 
-  code (code: string, name: string) {
+  code (code: string | number, name: string) {
     let key = this._keys[code]
     if (key === undefined) {
       key = { name: '', mode: '', record: false, actions: {} }
@@ -29,7 +29,7 @@ export class Router {
     return this
   }
 
-  action (name: string, methodName: string) {
+  action (name: string | number, methodName: string) {
     if (this.currentCode === undefined) {
       return
     }
