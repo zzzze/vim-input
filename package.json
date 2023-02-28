@@ -4,6 +4,7 @@
   "description": "simple vim for web textarea and input",
   "scripts": {
     "eslint": "eslint --ext .tsx --ext .ts src/",
+    "type-check": "tsc --noemit",
     "build": "rollup -c"
   },
   "keywords": [

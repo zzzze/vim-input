@@ -23,17 +23,17 @@ export default class EventBinder {
         this.app.vim.resetCursorByMouse()
       }
     })
-    this.app._on('input', (ev: InputEvent, replaced: boolean) => {
+    this.app._on('input', (e: KeyboardEvent, replaced: boolean) => {
       if (this.app === undefined) {
         return
       }
-      let code: number | string = this.getCode(ev)
+      let code: string = e.key.toLowerCase()
       this.app._log('mode:' + this.app.vim.currentMode)
       if (replaced) {
         this.app.recordText()
         return
       }
-      if (filter.code(this.app, code)) {
+      if (filter.code(this.app, e.keyCode)) {
         const unionCode = this.app.isUnionCode(code, -1)
         const vimKeys = this.app.router.getKeys()
         if (unionCode !== undefined && (vimKeys[unionCode] != null)) {
@@ -41,7 +41,7 @@ export default class EventBinder {
         }
         this.app._log(`key code: ${code}`)
         const num = this.app.numberManager(code)
-        this.app.parseRoute(code, ev, num)
+        this.app.parseRoute(code, e, num)
       }
     })
   }
@@ -71,12 +71,13 @@ export default class EventBinder {
   }
 
   onKeyDown (e: KeyboardEvent) {
+    console.log(e)
     let replaced = false
-    const code = this.getCode(e)
+    const key = e.key.toLowerCase()
     if (this.app === undefined) {
       return
     }
-    if (this.app.key_code_white_list.includes(code)) {
+    if (this.app.key_code_white_list.includes(key)) {
       return
     }
     if (this.app.vim.isMode(VimMode.GENERAL) || this.app.vim.isMode(VimMode.VISUAL)) {
@@ -90,17 +91,11 @@ export default class EventBinder {
         e.preventDefault()
       }
     } else {
-      if (code !== 27) {
+      if (key !== 'Escape'.toLowerCase()) {
         const p = this.app.textUtil.getCursorPosition()
         this.app.recordText(undefined, (p - 1 >= 0 ? p - 1 : p))
       }
     }
     this.app._fire('input', e, replaced)
-  }
-
-  getCode (ev: KeyboardEvent | InputEvent): number {
-    // FIXME: Determine type of event.
-    // eslint-disable-next-line
-    return (ev as any).keyCode || (ev as any).which || (ev as any).charCode
   }
 }

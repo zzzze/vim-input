@@ -52,7 +52,7 @@ export class AppBase {
   /**
    * previous key code
    */
-  prevCode: number | undefined = undefined
+  prevCode: string | undefined = undefined
 
   prevCodeTime = 0
 
@@ -65,7 +65,7 @@ export class AppBase {
   /**
    * key codes white list of vim
    */
-  key_code_white_list: number[] = []
+  key_code_white_list: string[] = []
 }
 
 // /**

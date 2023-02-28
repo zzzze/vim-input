@@ -16,7 +16,7 @@ export interface Data {
 }
 
 export type Options = Omit<typeof config, 'key_code_white_list'> & {
-  key_code_white_list?: number[]
+  key_code_white_list?: string[]
 }
 
 export class App extends AppBase {
@@ -158,7 +158,7 @@ export class App extends AppBase {
     this._number = ''
   }
 
-  isUnionCode (code: number, maxTime?: number) {
+  isUnionCode (code: string, maxTime?: number) {
     if (maxTime === undefined) {
       maxTime = 600
     }
@@ -177,14 +177,14 @@ export class App extends AppBase {
   }
 
   // FIXME: no eval
-  parseRoute (code: number | string, ev: KeyboardEvent | InputEvent, num?: number) {
+  parseRoute (code: string, ev: KeyboardEvent | InputEvent, num?: number) {
     const c = this.controller
     const param = num
     console.log(param)
     const prefix = 'c.'
     const suffix = '(param)'
     const vimKeys = this.router.getKeys()
-    if (code === 27) {
+    if (code === 'Escape'.toLowerCase()) {
       c.switchModeToGeneral()
       return
     }

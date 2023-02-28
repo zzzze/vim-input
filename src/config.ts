@@ -17,5 +17,5 @@ export default {
    * key codes white list of vim,
    * they are effective in general and visual mode
    */
-  key_code_white_list: [9, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123],
+  key_code_white_list: ['Tab', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'].map(key => key.toLowerCase()),
 }
