@@ -1,8 +1,8 @@
 const _ENTER_ = '\n'
 
 export class TextUtil {
-  el: HTMLInputElement | HTMLTextAreaElement
-  constructor (element: HTMLInputElement | HTMLTextAreaElement) {
+  el?: HTMLInputElement | HTMLTextAreaElement
+  constructor (element?: HTMLInputElement | HTMLTextAreaElement) {
     this.el = element
   }
 
@@ -11,6 +11,9 @@ export class TextUtil {
   }
 
   getText (sp?: number, ep?: number) {
+    if (this.el === undefined) {
+      return ''
+    }
     if (sp !== undefined || ep !== undefined) {
       return this.el.value.slice(sp, ep)
     }
@@ -18,23 +21,32 @@ export class TextUtil {
   }
 
   setText (t: string) {
+    if (this.el === undefined) {
+      return
+    }
     this.el.value = t
   }
 
   getSelectedText () {
+    if (this.el === undefined) {
+      return
+    }
     const t = this.el.value.substring(this.el.selectionStart ?? 0, this.el.selectionEnd ?? 0)
     return `${t} `
   }
 
   getCursorPosition () {
-    return this.el.selectionStart ?? 0
+    return this.el?.selectionStart ?? 0
   }
 
   getSelectEndPos () {
-    return this.el.selectionEnd ?? 0
+    return this.el?.selectionEnd ?? 0
   }
 
   select (start: number, end: number) {
+    if (this.el === undefined) {
+      return
+    }
     if (start > end) {
       const p = start
       start = end
