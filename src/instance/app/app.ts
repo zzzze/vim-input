@@ -1,5 +1,4 @@
 import { AppBase } from './init'
-import config from '../../config'
 import { Router } from '../router/router'
 import { TextUtil } from '../text/text'
 import { Vim } from '../vim/vim'
@@ -7,6 +6,7 @@ import { Controller } from '../controller'
 import Bind from '@/bind'
 import * as routes from '@/routes'
 import { VimMode } from '../vim/init'
+import config from '../../config'
 
 // const GENERAL = 'general_mode';
 // const VISUAL  = 'visual_mode';
@@ -14,6 +14,10 @@ const _ENTER_ = '\n'
 export interface Data {
   t: string
   p?: number
+}
+
+export type Options = Omit<typeof config, 'key_code_white_list'> & {
+  key_code_white_list?: number[]
 }
 
 export class App extends AppBase {
@@ -27,16 +31,19 @@ export class App extends AppBase {
   doList: Data[][] = []
   clipboard?: string
   _events: Record<string, ((...args: any[]) => void) | undefined> | undefined
-  constructor (options: typeof config) {
+  constructor (options: Options) {
     super()
-    this.config = options
+    this.config = {
+      ...config,
+      ...options,
+    }
     this.key_code_white_list = config.key_code_white_list
 
     this.router = new Router()
-    if (this.currentEle === undefined) {
-      throw Error('currentEle undefined')
-    }
-    this.textUtil = new TextUtil(this.currentEle)
+    // if (this.currentEle === undefined) {
+    //   throw Error('currentEle undefined')
+    // }
+    this.textUtil = new TextUtil(this.currentEle ?? document.createElement('input'))
     this.vim = new Vim(this.textUtil)
     this.controller = new Controller(this)
 

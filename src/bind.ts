@@ -15,9 +15,9 @@ export default class Bind {
     this.App.boxes = boxes
     for (let i = 0; i < boxes.length; i++) {
       const box = boxes[i]
-      box.onfocus = this.onFocus
-      box.onclick = this.onClick
-      box.onkeydown = this.onKeyDown
+      box.onfocus = this.onFocus.bind(this)
+      box.onclick = this.onClick.bind(this)
+      box.onkeydown = this.onKeyDown.bind(this)
     }
     this.App._on('reset_cursor_position', () => {
       if (this.App === undefined) {
@@ -80,7 +80,7 @@ export default class Bind {
     if (this.App === undefined) {
       return
     }
-    if (!this.App.key_code_white_list.includes(code)) {
+    if (this.App.key_code_white_list.includes(code)) {
       return
     }
     if (this.App.vim.isMode(VimMode.GENERAL) || this.App.vim.isMode(VimMode.VISUAL)) {

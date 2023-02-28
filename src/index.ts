@@ -67,10 +67,13 @@
 // }
 
 import { App } from './instance/app/app'
-import type config from './config'
+import type { Options } from './instance/app/app'
+// import type config from './config'
 
-export const vim = {
-  open (options: typeof config) {
+const vim = {
+  open (options: Options) {
     return new App(options)
   },
 }
+
+export default vim
