@@ -138,31 +138,28 @@ export class App extends AppBase {
     return this.boxes.indexOf(this.currentEle)
   }
 
-  numberManager (code: number | string) {
-    if (typeof code === 'string') {
-      code = 0
-    }
-    if (code === 68 || code === 89) {
+  numberManager (code: string) {
+    if (code === 'd' || code === 'y') {
       // 防止ndd和nyy时候数值计算错误,如当code为68时，
       // 如果不拦截，则会在后面执行initNumber()，导致dd时无法获取数值
       return undefined
     }
-    const num = parseFloat(String.fromCharCode(code))
+    const num = parseFloat(code)
     if (!isNaN(num) && num >= 0 && num <= 9) {
-      this._number = `${this._number}${num}`
+      this._number = this._number * 10 + num
       this._log(`number: ${this._number}`)
     } else {
       const n = this._number
       this.initNumber()
-      if (n !== '') {
-        return parseInt(n)
+      if (n !== 0) {
+        return n
       }
     }
     return undefined
   }
 
   initNumber () {
-    this._number = ''
+    this._number = 0
   }
 
   isUnionCode (code: string, maxTime?: number) {
@@ -183,9 +180,9 @@ export class App extends AppBase {
     return undefined
   }
 
-  parseRoute (code: string, ev: KeyboardEvent | InputEvent, num?: number) {
+  parseRoute (code: string, ev: KeyboardEvent | InputEvent, repeatCount?: number) {
     const c = this.controller
-    const param = num
+    // const param = num
     const vimKeys = this.router.getKeys()
     if (code === 'Escape'.toLowerCase()) {
       c.switchModeToGeneral()
@@ -212,11 +209,12 @@ export class App extends AppBase {
         return
       }
       this._log(`keyName: ${keyName}, action: ${key.actions[keyName] ?? ''}, handler: ${this._handlers[key.actions[keyName] as HandlerKey]?.toString() ?? 'undefined'}`)
-      this._handlers[key.actions[keyName] as HandlerKey]?.(param ?? 0)
       if (key.record) {
         this.recordText()
       }
-      this._handlers[key.actions[keyName] as HandlerKey]?.(param)
+      this._handlers[key.actions[keyName] as HandlerKey]?.({
+        repeatCount,
+      })
       // init number
       this.initNumber()
     }

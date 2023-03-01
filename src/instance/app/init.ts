@@ -60,7 +60,7 @@ export class AppBase {
    * numerical for vim command
    * @private
    */
-  _number: string = ''
+  _number: number = 0
 
   /**
    * key codes white list of vim

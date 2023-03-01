@@ -40,8 +40,8 @@ export default class EventBinder {
           code = unionCode
         }
         this.app._log(`key code: ${code}`)
-        const num = this.app.numberManager(code)
-        this.app.parseRoute(code, e, num)
+        const repeatCount = this.app.numberManager(code)
+        this.app.parseRoute(code, e, repeatCount)
       }
     })
   }

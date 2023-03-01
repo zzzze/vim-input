@@ -35,7 +35,10 @@ export enum HandlerKey {
   DeleteWord = 'deleteWord',
 }
 
-export type Handler = (num?: number) => void
+export interface HandlerArgs {
+  repeatCount?: number
+}
+export type Handler = (args: HandlerArgs) => void
 
 export class Controller {
   App: AppType
@@ -84,18 +87,18 @@ export class Controller {
     this.textUtil = tu
   }
 
-  selectPrevCharacter = (num?: number) => {
+  selectPrevCharacter = (args: HandlerArgs) => {
     this.App.repeatAction(() => {
       this.vim.selectPrevCharacter()
       return undefined
-    }, num)
+    }, args.repeatCount)
   }
 
-  selectNextCharacter = (num?: number) => {
+  selectNextCharacter = (args: HandlerArgs) => {
     this.App.repeatAction(() => {
       this.vim.selectNextCharacter()
       return undefined
-    }, num)
+    }, args.repeatCount)
   }
 
   switchModeToGeneral = () => {
@@ -171,18 +174,18 @@ export class Controller {
     this.insert()
   }
 
-  selectNextLine = (num?: number) => {
+  selectNextLine = (args: HandlerArgs) => {
     this.App.repeatAction(() => {
       this.vim.selectNextLine()
       return undefined
-    }, num)
+    }, args.repeatCount)
   }
 
-  selectPrevLine = (num?: number) => {
+  selectPrevLine = (args: HandlerArgs) => {
     this.App.repeatAction(() => {
       this.vim.selectPrevLine()
       return undefined
-    }, num)
+    }, args.repeatCount)
   }
 
   copyChar = () => {
@@ -193,7 +196,7 @@ export class Controller {
     }
   }
 
-  copyCurrentLine = (num?: number) => {
+  copyCurrentLine = (args: HandlerArgs) => {
     const _data: Data = {
       p: undefined,
       t: '',
@@ -202,7 +205,7 @@ export class Controller {
       _data.t = this.vim.copyCurrentLine(_data.p)
       _data.p = this.textUtil.getNextLineStart(_data.p)
       return _data.t
-    }, num)
+    }, args.repeatCount)
   }
 
   pasteAfter = () => {
@@ -253,17 +256,17 @@ export class Controller {
     }, 100)
   }
 
-  delCharAfter = (num?: number) => {
+  delCharAfter = (args: HandlerArgs) => {
     this.App.repeatAction(() => {
       return this.vim.deleteSelected()
-    }, num)
+    }, args.repeatCount)
     this.switchModeToGeneral()
   }
 
-  delCharBefore = (num?: number) => {
+  delCharBefore = (args: HandlerArgs) => {
     this.App.repeatAction(() => {
       return this.vim.deletePrevious()
-    }, num)
+    }, args.repeatCount)
     this.switchModeToGeneral()
   }
 
@@ -273,10 +276,10 @@ export class Controller {
     this.vim.backToHistory(list)
   }
 
-  delCurrLine = (num?: number) => {
+  delCurrLine = (args: HandlerArgs) => {
     this.App.repeatAction(() => {
       return this.vim.delCurrLine()
-    }, num)
+    }, args.repeatCount)
   }
 
   moveToFirstLine = () => {
@@ -287,28 +290,28 @@ export class Controller {
     this.vim.moveToLastLine()
   }
 
-  moveToNextWord = (num?: number) => {
+  moveToNextWord = (args: HandlerArgs) => {
     this.App.repeatAction(() => {
       this.vim.moveToNextWord()
       return undefined
-    }, num)
+    }, args.repeatCount)
   }
 
-  copyWord = (num?: number) => {
+  copyWord = (args: HandlerArgs) => {
     this.vim.pasteInNewLineRequest = false
     const sp = this.textUtil.getCursorPosition()
     let ep: number | undefined
     this.App.repeatAction(() => {
       ep = this.vim.copyWord(ep)
       return undefined
-    }, num)
+    }, args.repeatCount)
     this.App.clipboard = this.textUtil.getText(sp, ep)
   }
 
-  deleteWord = (num?: number) => {
+  deleteWord = (args: HandlerArgs) => {
     this.vim.pasteInNewLineRequest = false
     this.App.repeatAction(() => {
       return this.vim.deleteWord()
-    }, num)
+    }, args.repeatCount)
   }
 }
