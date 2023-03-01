@@ -16,12 +16,17 @@ export interface Data {
   p?: number
 }
 
-export type Options = Omit<typeof config, 'key_code_white_list'> & {
+export interface Options {
+  debug?: true
+  showMsg?: (msg: string, code?: string) => void
   key_code_white_list?: string[]
+  inputElement?: InputElement
 }
 
+export type InputElement = HTMLInputElement | HTMLTextAreaElement
+
 export class App extends AppBase {
-  currentEle?: HTMLInputElement | HTMLTextAreaElement
+  currentEle?: InputElement
   textUtil: TextUtil
   config: typeof config
   router: Router
@@ -38,6 +43,7 @@ export class App extends AppBase {
       ...config,
       ...options,
     }
+    this.currentEle = options.inputElement
     this._handlers = {}
     this.key_code_white_list = config.key_code_white_list
     this.router = new Router()
@@ -58,7 +64,7 @@ export class App extends AppBase {
   }
 
   _bind () {
-    new EventBinder().listen(this)
+    new EventBinder().listen(this, this.currentEle)
   }
 
   _on (event: string, fn: (...args: any[]) => void) {

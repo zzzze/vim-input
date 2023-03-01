@@ -1,19 +1,25 @@
-import type { App as AppType } from '@/instance/app/app'
+import type { App as AppType, InputElement } from '@/instance/app/app'
 import { VimMode } from '@/instance/vim/init'
 import * as filter from '@/filter'
 
 export default class EventBinder {
   app: AppType | undefined
 
-  listen (app: AppType) {
+  listen (app: AppType, inputElement?: InputElement) {
     this.app = app
-    const boxes: Array<HTMLInputElement | HTMLTextAreaElement> = [].slice.call(window.document.querySelectorAll('input, textarea'))
-    this.app.boxes = boxes
-    for (let i = 0; i < boxes.length; i++) {
-      const box = boxes[i]
-      box.onfocus = this.onFocus.bind(this)
-      box.onclick = this.onClick.bind(this)
-      box.onkeydown = this.onKeyDown.bind(this)
+    if (inputElement === undefined) {
+      const boxes: InputElement[] = [].slice.call(window.document.querySelectorAll('input, textarea'))
+      this.app.boxes = boxes
+      for (let i = 0; i < boxes.length; i++) {
+        const box = boxes[i]
+        box.onfocus = this.onFocus
+        box.onclick = this.onClick
+        box.onkeydown = this.onKeyDown
+      }
+    } else {
+      inputElement.onfocus = this.onFocus
+      inputElement.onclick = this.onClick
+      inputElement.onkeydown = this.onKeyDown
     }
     this.app._on('reset_cursor_position', () => {
       if (this.app === undefined) {
@@ -46,7 +52,7 @@ export default class EventBinder {
     })
   }
 
-  onFocus (e: FocusEvent) {
+  onFocus = (e: FocusEvent) => {
     if (this.app === undefined) {
       return
     }
@@ -63,14 +69,14 @@ export default class EventBinder {
     this.app.initNumber()
   }
 
-  onClick (e: MouseEvent) {
+  onClick = (e: MouseEvent) => {
     if (this.app === undefined) {
       return
     }
     this.app._fire('reset_cursor_position', e)
   }
 
-  onKeyDown (e: KeyboardEvent) {
+  onKeyDown = (e: KeyboardEvent) => {
     console.log(e)
     let replaced = false
     const key = e.key.toLowerCase()
