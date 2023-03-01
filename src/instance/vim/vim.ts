@@ -278,6 +278,14 @@ export class Vim extends VimBase {
     return t
   }
 
+  deletePrevious () {
+    const p = this.textUtil.getCursorPosition()
+    const t = this.textUtil.delPrevious()
+    this.textUtil.select(p - 1, p)
+    this.pasteInNewLineRequest = false
+    return t
+  }
+
   copyCurrentLine (p?: number) {
     const sp = this.textUtil.getCurrLineStartPos(p)
     const ep = this.textUtil.getCurrLineEndPos(p)

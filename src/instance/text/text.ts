@@ -122,6 +122,12 @@ export class TextUtil {
     return this.delete(sp, ep)
   }
 
+  delPrevious () {
+    const sp = Math.max(this.getCursorPosition() - 1, 0)
+    const ep = sp + 1
+    return this.delete(sp, ep)
+  }
+
   getCountFromStartToPosInCurrLine (p?: number) {
     if (p === undefined) {
       p = this.getCursorPosition()

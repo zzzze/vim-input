@@ -3,6 +3,7 @@ import { Router } from '@/instance/router/router'
 import { TextUtil } from '@/instance/text/text'
 import { Vim } from '@/instance/vim/vim'
 import { Controller } from '@/instance/controller'
+import type { Handler, HandlerKey } from '@/instance/controller'
 import EventBinder from '@/event-binder'
 import * as routes from '@/routes'
 import { VimMode } from '@/instance/vim/init'
@@ -30,12 +31,14 @@ export class App extends AppBase {
   doList: Data[][] = []
   clipboard?: string
   _events: Record<string, ((...args: any[]) => void) | undefined> | undefined
+  _handlers: Record<string, Handler | undefined>
   constructor (options: Options) {
     super()
     this.config = {
       ...config,
       ...options,
     }
+    this._handlers = {}
     this.key_code_white_list = config.key_code_white_list
     this.router = new Router()
     this.textUtil = new TextUtil(this.currentEle)
@@ -85,6 +88,10 @@ export class App extends AppBase {
     if (debug) {
       console.log(msg)
     }
+  }
+
+  registerHandler (action: HandlerKey, handler: Handler) {
+    this._handlers[action] = handler
   }
 
   repeatAction (action: () => string | undefined, num?: number) {
@@ -176,13 +183,9 @@ export class App extends AppBase {
     return undefined
   }
 
-  // FIXME: no eval
   parseRoute (code: string, ev: KeyboardEvent | InputEvent, num?: number) {
     const c = this.controller
     const param = num
-    console.log(param)
-    const prefix = 'c.'
-    const suffix = '(param)'
     const vimKeys = this.router.getKeys()
     if (code === 'Escape'.toLowerCase()) {
       c.switchModeToGeneral()
@@ -208,12 +211,12 @@ export class App extends AppBase {
       if (key === undefined) {
         return
       }
-      this._log(`${key.actions[keyName] ?? ''}${suffix}`)
-      // record
+      this._log(`keyName: ${keyName}, action: ${key.actions[keyName] ?? ''}, handler: ${this._handlers[key.actions[keyName] as HandlerKey]?.toString() ?? 'undefined'}`)
+      this._handlers[key.actions[keyName] as HandlerKey]?.(param ?? 0)
       if (key.record) {
         this.recordText()
       }
-      eval(`${prefix}${key.actions[keyName]}${suffix}`) // eslint-disable-line no-eval
+      this._handlers[key.actions[keyName] as HandlerKey]?.(param)
       // init number
       this.initNumber()
     }
