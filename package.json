@@ -5,6 +5,7 @@
   "scripts": {
     "eslint": "eslint --ext .tsx --ext .ts src/",
     "type-check": "tsc --noemit",
+    "test:e2e": "npm run build && vitest",
     "build": "rollup -c"
   },
   "keywords": [
@@ -12,11 +13,10 @@
     "vim.js"
   ],
   "author": "VinZhang",
-  "type": "module",
   "main": "dist/index.mjs",
   "browser": "dist/index.min.js",
   "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "types": "dist/src/index.d.ts",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -27,6 +27,7 @@
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-terser": "^0.4.0",
     "@rollup/plugin-typescript": "^11.0.0",
+    "@types/jsdom": "^21.1.0",
     "@typescript-eslint/eslint-plugin": "^5.51.0",
     "@typescript-eslint/parser": "^5.51.0",
     "eslint": "^8.33.0",
@@ -37,7 +38,9 @@
     "eslint-plugin-promise": "^6.1.1",
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "jsdom": "^21.1.0",
     "rollup": "^3.17.0",
-    "typescript": "^4.9.5"
+    "typescript": "^4.9.5",
+    "vitest": "^0.28.4"
   }
 }

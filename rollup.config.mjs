@@ -19,8 +19,6 @@ export function createConfig ({ input = 'index.ts', pkg, external = [] }) {
         .concat(builtinModules)
         .concat(external),
       onwarn: (warning) => {
-        // FIXME: remove suppressing eval warnings
-        if (warning.code === 'EVAL') return
         throw Object.assign(new Error(), warning)
       },
       strictDeprecations: true,
@@ -37,14 +35,13 @@ export function createConfig ({ input = 'index.ts', pkg, external = [] }) {
     {
       input,
       onwarn: (warning) => {
-        // FIXME: remove suppressing eval warnings
-        if (warning.code === 'EVAL') return
         throw Object.assign(new Error(), warning)
       },
       strictDeprecations: true,
       output: {
         file: pkg.browser,
-        format: 'es',
+        format: 'umd',
+        name: 'vim',
         sourcemap: true,
         entryFileNames: '[name].min.js',
       },
