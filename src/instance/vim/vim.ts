@@ -37,17 +37,17 @@ export class Vim extends VimBase {
 
   resetCursorByMouse () {
     this.switchModeTo(VimMode.GENERAL)
-    const p: number = this.textUtil.getCursorPosition()
-    const sp: number = this.textUtil.getCurrLineStartPos()
-    const c: number = this.textUtil.getCurrLineCount()
-    if (p === sp && c === 0) {
-      this.textUtil.appendText(' ', p)
+    const cursorPosition: number = this.textUtil.getCursorPosition()
+    const currentLineStart: number = this.textUtil.getCurrLineStartPos()
+    const currentLineCharCount: number = this.textUtil.getCurrLineCount()
+    if (cursorPosition === currentLineStart && currentLineCharCount === 0) {
+      this.textUtil.appendText(' ', cursorPosition)
     }
-    const ns = this.textUtil.getNextSymbol(p - 1)
+    const ns = this.textUtil.getNextSymbol(cursorPosition - 1)
     if (ns !== undefined && ns !== _ENTER_) {
-      this.textUtil.select(p, p + 1)
+      this.textUtil.select(cursorPosition, cursorPosition + 1)
     } else {
-      this.textUtil.select(p - 1, p)
+      this.textUtil.select(cursorPosition - 1, cursorPosition)
     }
   }
 
@@ -141,7 +141,11 @@ export class Vim extends VimBase {
 
   append () {
     const p: number = this.textUtil.getCursorPosition()
-    this.textUtil.select(p + 1, p + 1)
+    if (this.textUtil.removeEmptyLinePlaceholder()) {
+      this.textUtil.select(p, p)
+    } else {
+      this.textUtil.select(p + 1, p + 1)
+    }
   }
 
   insert () {
@@ -154,37 +158,37 @@ export class Vim extends VimBase {
     if (this.isMode(VimMode.VISUAL) && this.visualCursor !== undefined) {
       sp = this.visualCursor
     }
-    const nl = this.textUtil.getNextLineStart(sp)
-    const nr = this.textUtil.getNextLineEnd(sp) ?? 0
-    const nc = nr - nl
-    let cc: number = this.textUtil.getCountFromStartToPosInCurrLine(sp)
+    const nextLineStart = this.textUtil.getNextLineStart(sp)
+    const nextLineEnd = this.textUtil.getNextLineEnd(sp) ?? 0
+    const nextLineCharCount = nextLineEnd - nextLineStart
+    let currentCursorOffsetFromLineStart: number = this.textUtil.getCountFromStartToPosInCurrLine(sp)
     if (this.isMode(VimMode.VISUAL) && this.visualCursor !== undefined && (this.visualPosition ?? 0) < this.visualCursor) {
-      cc = cc - 1
+      currentCursorOffsetFromLineStart = currentCursorOffsetFromLineStart - 1
     }
-    let p = nl + (cc > nc ? nc : cc)
-    if (p <= this.textUtil.getText().length) {
-      let s = p - 1
+    let nextCursorPosition = nextLineStart + (currentCursorOffsetFromLineStart > nextLineCharCount ? nextLineCharCount : currentCursorOffsetFromLineStart)
+    if (nextCursorPosition <= this.textUtil.getText().length) {
+      let s = nextCursorPosition - 1
       if (this.isMode(VimMode.VISUAL)) {
         s = this.visualPosition ?? 0
-        if (s > p) {
-          p = p - 1
+        if (s > nextCursorPosition) {
+          nextCursorPosition = nextCursorPosition - 1
         }
-        this.visualCursor = p
-        if (this.textUtil.getSymbol(nl) === _ENTER_) {
-          this.textUtil.appendText(' ', nl)
-          p = p + 1
-          this.visualCursor = p
-          if (s > p) {
+        this.visualCursor = nextCursorPosition
+        if (this.textUtil.getSymbol(nextLineStart) === _ENTER_) {
+          this.textUtil.appendText(' ', nextLineStart)
+          nextCursorPosition = nextCursorPosition + 1
+          this.visualCursor = nextCursorPosition
+          if (s > nextCursorPosition) {
             // 因为新加了空格符，导致字符总数增加，visual开始位置相应增加
             s += 1
             this.visualPosition = s
           }
         }
       }
-      this.textUtil.select(s, p)
+      this.textUtil.select(s, nextCursorPosition)
       if (this.isMode(VimMode.GENERAL)) {
-        if (this.textUtil.getSymbol(nl) === _ENTER_) {
-          this.textUtil.appendText(' ', nl)
+        if (this.textUtil.getSymbol(nextLineStart) === _ENTER_) {
+          this.textUtil.appendText(' ', nextLineStart)
         }
       }
     }
@@ -271,9 +275,9 @@ export class Vim extends VimBase {
   }
 
   deleteSelected () {
-    const p = this.textUtil.getCursorPosition()
+    const cursorPosition = this.textUtil.getCursorPosition()
     const t = this.textUtil.delSelected()
-    this.textUtil.select(p, p + 1)
+    this.textUtil.select(cursorPosition, cursorPosition + 1)
     this.pasteInNewLineRequest = false
     return t
   }

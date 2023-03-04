@@ -52,6 +52,7 @@ export function ready (router: Router) {
   router.code('v', 'v').action('v', HandlerKey.SwitchModeToVisual)?.action('V', HandlerKey.SwitchModeToVisual)
   // delete character
   router.code('x', 'x').action('x', HandlerKey.DelCharAfter)?.action('X', HandlerKey.DelCharBefore)?.record(true)
+  router.code('s', 's').action('s', HandlerKey.DelCharAfter, VimMode.EDIT)?.record(true)
   // delete selected char in visual mode
   router.code('d', 'd').action('d', HandlerKey.DelCharAfter)?.mode(VimMode.VISUAL)?.record(true)
   // delete line

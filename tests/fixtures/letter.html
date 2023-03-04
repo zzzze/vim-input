@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <body>
-<textarea id='editor' rows="30">
+<textarea id='content' rows="30">
 Dear John,
 
 I hope this letter finds you well. It's been a while since we've spoken, and I wanted to take this opportunity to catch up with you.
@@ -16,14 +16,14 @@ Take care,
 
 Jane
 </textarea>
-<script src="../dist/index.min.js"></script>
+<script src="../../dist/index.min.js"></script>
 <script type="text/javascript">
-    vim.open({
+    window.app = vim.open({
         debug : true,
         showMsg: function(msg){
             alert('msg:' + msg);
         },
-        inputElement: document.getElementById('editor'),
+        inputElement: document.getElementById('content'),
     });
 </script>
 </body>

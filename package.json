@@ -5,7 +5,8 @@
   "scripts": {
     "eslint": "eslint --ext .tsx --ext .ts src/",
     "type-check": "tsc --noemit",
-    "test:e2e": "npm run build && vitest",
+    "test:unit": "vitest",
+    "test:e2e": "npm run build && vitest -c vitest.config.e2e.ts",
     "build": "rollup -c"
   },
   "keywords": [

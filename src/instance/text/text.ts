@@ -116,9 +116,30 @@ export class TextUtil {
     return undefined
   }
 
+  private isCursorInEmptyLine () {
+    const sp = this.getCursorPosition()
+    const ep = this.getSelectEndPos()
+    const text = this.getText(Math.max(sp - 1, 0), ep + 1)
+    return text === `${_ENTER_} ${_ENTER_}` || text === ` ${_ENTER_}`
+  }
+
+  removeEmptyLinePlaceholder () {
+    const sp = this.getCursorPosition()
+    const ep = this.getSelectEndPos()
+    if (this.isCursorInEmptyLine()) {
+      this.delete(sp, ep)
+      this.select(sp, ep)
+      return true
+    }
+    return false
+  }
+
   delSelected () {
     const sp = this.getCursorPosition()
     const ep = this.getSelectEndPos()
+    if (this.isCursorInEmptyLine()) {
+      return
+    }
     return this.delete(sp, ep)
   }
 

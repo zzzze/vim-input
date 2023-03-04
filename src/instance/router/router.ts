@@ -5,6 +5,7 @@ interface Key {
   mode: VimMode | ''
   record: boolean
   actions: Record<string, string>
+  modeAfterAction?: Record<string, VimMode | undefined>
 }
 
 export class Router {
@@ -30,7 +31,7 @@ export class Router {
     return this
   }
 
-  action (name: string | number, methodName: string) {
+  action (name: string | number, methodName: string, switchModeTo?: VimMode) {
     if (this.currentCode === undefined) {
       return
     }
@@ -39,6 +40,12 @@ export class Router {
       return
     }
     key.actions[name] = methodName
+    if (switchModeTo !== undefined) {
+      key.modeAfterAction = {
+        ...key.modeAfterAction,
+        [name]: switchModeTo,
+      }
+    }
     return this
   }
 

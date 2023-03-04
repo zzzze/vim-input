@@ -221,6 +221,22 @@ export class App extends AppBase {
       this._handlers[key.actions[keyName] as HandlerKey]?.({
         repeatCount,
       })
+      const modeAfterAction = key.modeAfterAction?.[keyName]
+      if (modeAfterAction !== undefined) {
+        switch (modeAfterAction) {
+          case VimMode.GENERAL:
+            c.switchModeToGeneral()
+            break
+          case VimMode.VISUAL:
+            c.switchModeToVisual()
+            break
+          case VimMode.EDIT:
+            this.vim.switchModeTo(VimMode.EDIT)
+            break
+          default:
+            break
+        }
+      }
       // init number
       this.initNumber()
     }
