@@ -16,3 +16,14 @@ Take care,
 Jane
 "
 `;
+
+exports[`selection and deletion (v) > should delete selected characters 2`] = `
+"y, I wanted to tell you about some exciting news on my end. I've decided to start my own business! It's been a dream of mine for a long time, and I finally took the leap. It's been a lot of work, but also very rewarding.
+
+Anyway, I'd love to hear what's new with you. Let's catch up soon over a cup of coffee?
+
+Take care,
+
+Jane
+"
+`;

@@ -9,6 +9,7 @@ const _ENTER_ = '\n'
 // var textUtil;
 
 export class Vim extends VimBase {
+  offsetOfLineStart: number = 1
   textUtil: TextUtil
   constructor (tu: TextUtil) {
     super()
@@ -49,6 +50,7 @@ export class Vim extends VimBase {
     } else {
       this.textUtil.select(cursorPosition - 1, cursorPosition)
     }
+    this.updateOffsetOfLineStart()
   }
 
   selectNextCharacter () {
@@ -94,6 +96,19 @@ export class Vim extends VimBase {
         }
       }
     }
+    this.updateOffsetOfLineStart()
+  }
+
+  updateOffsetOfLineStart (offset?: number) {
+    if (offset !== undefined) {
+      this.offsetOfLineStart = Math.max(offset, 1)
+      return
+    }
+    let cursorPosition: number | undefined
+    if (this.isMode(VimMode.VISUAL) && this.visualCursor !== undefined) {
+      cursorPosition = this.visualCursor
+    }
+    this.offsetOfLineStart = Math.max(this.textUtil.getCountFromStartToPosInCurrLine(cursorPosition) - 1 ?? 1, 1)
   }
 
   selectPrevCharacter () {
@@ -137,6 +152,7 @@ export class Vim extends VimBase {
     if ((this.isMode(VimMode.GENERAL) && s >= 0) || this.isMode(VimMode.VISUAL)) {
       this.textUtil.select(s, p)
     }
+    this.updateOffsetOfLineStart()
   }
 
   append () {
@@ -161,10 +177,7 @@ export class Vim extends VimBase {
     const nextLineStart = this.textUtil.getNextLineStart(sp)
     const nextLineEnd = this.textUtil.getNextLineEnd(sp) ?? 0
     const nextLineCharCount = nextLineEnd - nextLineStart
-    let currentCursorOffsetFromLineStart: number = this.textUtil.getCountFromStartToPosInCurrLine(sp)
-    if (this.isMode(VimMode.VISUAL) && this.visualCursor !== undefined && (this.visualPosition ?? 0) < this.visualCursor) {
-      currentCursorOffsetFromLineStart = currentCursorOffsetFromLineStart - 1
-    }
+    const currentCursorOffsetFromLineStart = this.offsetOfLineStart
     let nextCursorPosition = nextLineStart + (currentCursorOffsetFromLineStart > nextLineCharCount ? nextLineCharCount : currentCursorOffsetFromLineStart)
     if (nextCursorPosition <= this.textUtil.getText().length) {
       let s = nextCursorPosition - 1
@@ -195,18 +208,15 @@ export class Vim extends VimBase {
   }
 
   selectPrevLine () {
-    let sp: number | undefined
+    let cursorPosition: number | undefined
     if (this.isMode(VimMode.VISUAL) && this.visualCursor !== undefined) {
-      sp = this.visualCursor
+      cursorPosition = this.visualCursor
     }
-    const pl = this.textUtil.getPrevLineStart(sp)
-    const pr = this.textUtil.getPrevLineEnd(sp)
-    let cc = this.textUtil.getCountFromStartToPosInCurrLine(sp)
-    if (this.isMode(VimMode.VISUAL) && this.visualCursor !== undefined && (this.visualPosition ?? 0) < this.visualCursor) {
-      cc = cc - 1
-    }
-    const pc = (pr ?? 0) - (pl ?? 0)
-    const p = (pl ?? 0) + (cc > pc ? pc : cc)
+    const prevLineStart = this.textUtil.getPrevLineStart(cursorPosition)
+    const prevLineEnd = this.textUtil.getPrevLineEnd(cursorPosition)
+    const currentCursorOffsetFromLineStart = this.offsetOfLineStart
+    const pc = (prevLineEnd ?? 0) - (prevLineStart ?? 0)
+    const p = (prevLineStart ?? 0) + (currentCursorOffsetFromLineStart > pc ? pc : currentCursorOffsetFromLineStart)
     if (p >= 0) {
       let s = p - 1
       let e = p
@@ -219,8 +229,8 @@ export class Vim extends VimBase {
       }
       this.textUtil.select(s, e)
       if (this.isMode(VimMode.GENERAL)) {
-        if (this.textUtil.getSymbol(pl ?? 0) === _ENTER_) {
-          this.textUtil.appendText(' ', pl)
+        if (this.textUtil.getSymbol(prevLineStart ?? 0) === _ENTER_) {
+          this.textUtil.appendText(' ', prevLineStart)
         }
       }
     }
@@ -240,6 +250,7 @@ export class Vim extends VimBase {
         this.selectPrevCharacter()
       }
     }
+    this.updateOffsetOfLineStart(1)
   }
 
   moveToCurrentLineTail () {
@@ -260,6 +271,7 @@ export class Vim extends VimBase {
         this.selectNextCharacter()
       }
     }
+    this.updateOffsetOfLineStart(Number.MAX_SAFE_INTEGER)
   }
 
   appendNewLine () {
@@ -353,6 +365,7 @@ export class Vim extends VimBase {
         this.visualCursor = sp + 1
       }
     }
+    this.updateOffsetOfLineStart()
   }
 
   copyWord (p?: number) {
