@@ -9,7 +9,7 @@ const _ENTER_ = '\n'
 // var textUtil;
 
 export class Vim extends VimBase {
-  offsetOfLineStart: number = 1
+  offsetOfLineStart: number | undefined
   textUtil: TextUtil
   constructor (tu: TextUtil) {
     super()
@@ -19,6 +19,7 @@ export class Vim extends VimBase {
   resetVim () {
     this.replaceRequest = false
     this.visualPosition = undefined
+    this.originalVisualPosition = undefined
     this.visualCursor = undefined
   }
 
@@ -30,9 +31,35 @@ export class Vim extends VimBase {
     return this.currentMode === modeName
   }
 
+  private isAtBeginningOfLine (cursor: number) {
+    return cursor === 0 || this.textUtil.getPrevSymbol(cursor) === _ENTER_
+  }
+
+  private handleFromEditModeToGeneralOrVisualMode () {
+    const cursor = this.textUtil.getCursorPosition()
+    if (this.isAtBeginningOfLine(cursor)) {
+      this.textUtil.select(cursor, cursor + 1)
+    } else {
+      this.textUtil.select(cursor - 1, cursor)
+    }
+  }
+
   switchModeTo (modeName: VimMode) {
+    // TODO: calculate cursor position when switch from visual mode, and add unit tests.
+    if (this.currentMode === modeName) {
+      return
+    }
+    if (this.currentMode === VimMode.VISUAL) {
+      this.originalVisualPosition = 0
+    }
+    if (this.currentMode === VimMode.EDIT && [VimMode.GENERAL, VimMode.VISUAL].includes(modeName)) {
+      this.handleFromEditModeToGeneralOrVisualMode()
+    }
     if ([VimMode.GENERAL, VimMode.COMMAND, VimMode.EDIT, VimMode.VISUAL].includes(modeName)) {
       this.currentMode = modeName
+    }
+    if (modeName === VimMode.VISUAL) {
+      this.originalVisualPosition = this.textUtil.getCursorPosition()
     }
   }
 
@@ -53,106 +80,129 @@ export class Vim extends VimBase {
     this.updateOffsetOfLineStart()
   }
 
+  private determineCursorInVisualMode (selectionStart: number, selectionEnd: number, nextSelectionEnd: number) {
+    let start = selectionStart
+    let end = nextSelectionEnd
+    if (selectionStart < selectionEnd && selectionStart >= nextSelectionEnd) {
+      start += 1
+      if (selectionStart === selectionEnd - 1 && selectionStart === nextSelectionEnd) {
+        end -= 1
+      }
+    } else if (selectionStart > selectionEnd && selectionStart <= nextSelectionEnd) {
+      start -= 1
+      if (selectionStart - 1 === selectionEnd && selectionStart === nextSelectionEnd) {
+        end += 1
+      }
+    }
+    if (end === start + 1) {
+      [start, end] = [end, start]
+    }
+    return { start, end }
+  }
+
+  private selectNextCharacterInGeneralMode () {
+    const cursorPosition = this.textUtil.getCursorPosition()
+    if (this.textUtil.getNextSymbol(cursorPosition) === _ENTER_) {
+      return
+    }
+    if (cursorPosition + 1 > this.textUtil.getText().length) {
+      return
+    }
+    this.textUtil.select(cursorPosition + 1, cursorPosition + 2)
+  }
+
+  private selectNextCharacterInVisualMode () {
+    const selectionStart = this.textUtil.getCursorPosition()
+    const selectionEnd = this.textUtil.getSelectEndPos()
+    if (this.textUtil.getPrevSymbol(selectionEnd) === _ENTER_) {
+      return
+    }
+    const nextSelectionEnd = selectionEnd + 1
+    if (nextSelectionEnd > this.textUtil.getText().length) {
+      return
+    }
+    const { start, end } = this.determineCursorInVisualMode(selectionStart, selectionEnd, nextSelectionEnd)
+    this.textUtil.select(start, end)
+  }
+
   selectNextCharacter () {
-    let p: number = this.textUtil.getCursorPosition()
-    if (this.isMode(VimMode.VISUAL) && this.visualCursor !== undefined) {
-      p = this.visualCursor
-    }
-    if (this.isMode(VimMode.GENERAL) && this.textUtil.getNextSymbol(p) === _ENTER_) {
-      return
-    }
-    if (this.isMode(VimMode.VISUAL) && this.textUtil.getNextSymbol(p - 1) === _ENTER_) {
-      return
-    }
-    if (p + 1 <= this.textUtil.getText().length) {
-      let s = p + 1
-      let f1: number = 0
-      let f2: number = 0
-      let f3: number = 0
-      if (this.isMode(VimMode.VISUAL)) {
-        s = this.visualPosition ?? 0 // FIXME: undefined
-        this.visualCursor = p + 1
-        f1 = this.visualCursor
-        f2 = this.visualPosition ?? 0
-        f3 = this.textUtil.getCursorPosition()
-      }
-      // default
-      this.textUtil.select(s, p + 2)
-      // special
-      if (this.isMode(VimMode.VISUAL)) {
-        if (s === p) {
-          this.textUtil.select(s, p + 2)
-          this.visualCursor = p + 2
-        } else {
-          this.textUtil.select(s, p + 1)
-        }
-        if (f2 > f1 && f2 > f3) {
-          this.textUtil.select(s, p + 1)
-        } else if (f1 === f2 && f2 - f3 === 1) {
-          // textUtil.select(s, p+1)
-          this.visualPosition = f2 - 1
-          this.visualCursor = p + 2
-          this.textUtil.select(s - 1, p + 2)
-        }
-      }
+    if (this.isMode(VimMode.GENERAL)) {
+      this.selectNextCharacterInGeneralMode()
+    } else if (this.isMode(VimMode.VISUAL)) {
+      this.selectNextCharacterInVisualMode()
     }
     this.updateOffsetOfLineStart()
+  }
+
+  private calcOffsetOfLineStart () {
+    let cursorPosition: number | undefined
+    if (this.isMode(VimMode.VISUAL)) {
+      const selectionStart = this.textUtil.getCursorPosition()
+      const selectionEnd = this.textUtil.getSelectEndPos()
+      if (selectionStart > selectionEnd) {
+        cursorPosition = selectionEnd
+      } else if (selectionStart < selectionEnd) {
+        cursorPosition = selectionEnd - 1
+      }
+    }
+    return this.textUtil.getCountFromStartToPosInCurrLine(cursorPosition) - 1 ?? 0
   }
 
   updateOffsetOfLineStart (offset?: number) {
     if (offset !== undefined) {
-      this.offsetOfLineStart = Math.max(offset, 1)
+      this.offsetOfLineStart = Math.max(offset, 0)
       return
     }
-    let cursorPosition: number | undefined
-    if (this.isMode(VimMode.VISUAL) && this.visualCursor !== undefined) {
-      cursorPosition = this.visualCursor
+    this.offsetOfLineStart = this.calcOffsetOfLineStart()
+  }
+
+  private selectPrevCharacterInGeneralMode () {
+    const cursorPosition = this.textUtil.getCursorPosition()
+    if (this.textUtil.getPrevSymbol(cursorPosition) === _ENTER_) {
+      return
     }
-    this.offsetOfLineStart = Math.max(this.textUtil.getCountFromStartToPosInCurrLine(cursorPosition) - 1 ?? 1, 1)
+    if (cursorPosition - 1 <= 0) {
+      return
+    }
+    this.textUtil.select(cursorPosition - 1, cursorPosition)
+  }
+
+  private selectPrevCharacterInVisualMode () {
+    const selectionStart = this.textUtil.getCursorPosition()
+    const selectionEnd = this.textUtil.getSelectEndPos()
+    const nextSelectionEnd = selectionEnd - 1
+    if (this.textUtil.getPrevSymbol(selectionStart) === _ENTER_) {
+      return
+    }
+    if (selectionEnd < 0) {
+      return
+    }
+    const { start, end } = this.determineCursorInVisualMode(selectionStart, selectionEnd, nextSelectionEnd)
+    this.textUtil.select(start, end)
   }
 
   selectPrevCharacter () {
-    let p: number = this.textUtil.getCursorPosition()
-    if (this.isMode(VimMode.VISUAL) && this.visualCursor !== undefined) {
-      p = this.visualCursor
-    }
-    if (this.textUtil.getPrevSymbol(p) === _ENTER_) {
-      return
-    }
-    let s = p - 1
-    if (this.isMode(VimMode.VISUAL)) {
-      s = this.visualPosition ?? 0
-      if (s < p && this.textUtil.getPrevSymbol(p - 1) === _ENTER_) {
-        return
-      }
-      if (s === p) {
-        p = p + 1
-        s = s - 1
-        this.visualPosition = p
-        this.visualCursor = s
-      } else if (p === s + 1) {
-        s = s + 1
-        p = p - 2
-        this.visualPosition = s
-        this.visualCursor = p
-      } else if (p === s - 1) {
-        p = s - 2
-        this.visualCursor = p
-      } else {
-        // default
-        if (!(s < p && (p + 1 === this.textUtil.getSelectEndPos()))) {
-          p = p - 1
-        }
-        this.visualCursor = p
-      }
-    }
-    if ((this.visualCursor ?? 0) < 0) {
-      this.visualCursor = 0
-    }
-    if ((this.isMode(VimMode.GENERAL) && s >= 0) || this.isMode(VimMode.VISUAL)) {
-      this.textUtil.select(s, p)
+    if (this.isMode(VimMode.GENERAL)) {
+      this.selectPrevCharacterInGeneralMode()
+    } else if (this.isMode(VimMode.VISUAL)) {
+      this.selectPrevCharacterInVisualMode()
     }
     this.updateOffsetOfLineStart()
+  }
+
+  correctVisualPosition () {
+    if (!this.isMode(VimMode.VISUAL)) {
+      return this.visualPosition ?? 0
+    }
+    let position = this.visualPosition ?? 0
+    if ((this.visualCursor ?? 0) <= (this.originalVisualPosition ?? 0)) {
+      this.visualPosition = (this.originalVisualPosition ?? 0) + 1
+      position = this.visualPosition ?? 0
+    } else {
+      this.visualPosition = this.originalVisualPosition ?? 0
+      position = this.visualPosition ?? 0
+    }
+    return position
   }
 
   append () {
@@ -169,70 +219,79 @@ export class Vim extends VimBase {
     this.textUtil.select(p, p)
   }
 
-  selectNextLine () {
-    let sp: number | undefined
-    if (this.isMode(VimMode.VISUAL) && this.visualCursor !== undefined) {
-      sp = this.visualCursor
+  private selectNextLineInGeneralMode () {
+    const selectionEnd = this.textUtil.getSelectEndPos()
+    const nextLineStart = this.textUtil.getNextLineStart(selectionEnd)
+    if (this.textUtil.getSymbol(nextLineStart) === _ENTER_) {
+      this.textUtil.insertText(' ', nextLineStart)
+      this.textUtil.select(nextLineStart, nextLineStart + 1)
+      return
     }
-    const nextLineStart = this.textUtil.getNextLineStart(sp)
-    const nextLineEnd = this.textUtil.getNextLineEnd(sp) ?? 0
+    const nextLineEnd = this.textUtil.getNextLineEnd(selectionEnd) ?? 0
     const nextLineCharCount = nextLineEnd - nextLineStart
-    const currentCursorOffsetFromLineStart = this.offsetOfLineStart
-    let nextCursorPosition = nextLineStart + (currentCursorOffsetFromLineStart > nextLineCharCount ? nextLineCharCount : currentCursorOffsetFromLineStart)
-    if (nextCursorPosition <= this.textUtil.getText().length) {
-      let s = nextCursorPosition - 1
-      if (this.isMode(VimMode.VISUAL)) {
-        s = this.visualPosition ?? 0
-        if (s > nextCursorPosition) {
-          nextCursorPosition = nextCursorPosition - 1
-        }
-        this.visualCursor = nextCursorPosition
-        if (this.textUtil.getSymbol(nextLineStart) === _ENTER_) {
-          this.textUtil.appendText(' ', nextLineStart)
-          nextCursorPosition = nextCursorPosition + 1
-          this.visualCursor = nextCursorPosition
-          if (s > nextCursorPosition) {
-            // 因为新加了空格符，导致字符总数增加，visual开始位置相应增加
-            s += 1
-            this.visualPosition = s
-          }
-        }
-      }
-      this.textUtil.select(s, nextCursorPosition)
-      if (this.isMode(VimMode.GENERAL)) {
-        if (this.textUtil.getSymbol(nextLineStart) === _ENTER_) {
-          this.textUtil.appendText(' ', nextLineStart)
-        }
-      }
+    const currentCursorOffsetFromLineStart = (this.offsetOfLineStart ?? this.calcOffsetOfLineStart()) + 1
+    const nextSelectionEnd = nextLineStart + (currentCursorOffsetFromLineStart > nextLineCharCount ? nextLineCharCount : currentCursorOffsetFromLineStart)
+    this.textUtil.select(nextSelectionEnd - 1, nextSelectionEnd)
+  }
+
+  private selectNextLineInVisualMode () {
+    const selectionStart = this.textUtil.getCursorPosition()
+    const selectionEnd = this.textUtil.getSelectEndPos()
+    const nextLineStart = this.textUtil.getNextLineStart(selectionEnd)
+    const nextLineEnd = this.textUtil.getNextLineEnd(selectionEnd) ?? 0
+    const nextLineCharCount = nextLineEnd - nextLineStart
+    const currentCursorOffsetFromLineStart = this.offsetOfLineStart ?? this.calcOffsetOfLineStart()
+    let nextSelectionEnd = nextLineStart + (currentCursorOffsetFromLineStart > nextLineCharCount ? nextLineCharCount : currentCursorOffsetFromLineStart)
+    if (nextSelectionEnd > selectionStart) {
+      nextSelectionEnd += 1
+    }
+    const { start, end } = this.determineCursorInVisualMode(selectionStart, selectionEnd, nextSelectionEnd)
+    this.textUtil.select(start, end)
+  }
+
+  selectNextLine () {
+    if (this.isMode(VimMode.GENERAL)) {
+      this.selectNextLineInGeneralMode()
+    } else if (this.isMode(VimMode.VISUAL)) {
+      this.selectNextLineInVisualMode()
     }
   }
 
-  selectPrevLine () {
-    let cursorPosition: number | undefined
-    if (this.isMode(VimMode.VISUAL) && this.visualCursor !== undefined) {
-      cursorPosition = this.visualCursor
+  private selectPrevLineInGeneralMode () {
+    const selectionEnd = this.textUtil.getSelectEndPos()
+    const prevLineStart = this.textUtil.getPrevLineStart(selectionEnd) ?? 0
+    if (this.textUtil.getSymbol(prevLineStart) === _ENTER_) {
+      this.textUtil.insertText(' ', prevLineStart)
+      this.textUtil.select(prevLineStart, prevLineStart + 1)
+      return
     }
-    const prevLineStart = this.textUtil.getPrevLineStart(cursorPosition)
-    const prevLineEnd = this.textUtil.getPrevLineEnd(cursorPosition)
-    const currentCursorOffsetFromLineStart = this.offsetOfLineStart
-    const pc = (prevLineEnd ?? 0) - (prevLineStart ?? 0)
-    const p = (prevLineStart ?? 0) + (currentCursorOffsetFromLineStart > pc ? pc : currentCursorOffsetFromLineStart)
-    if (p >= 0) {
-      let s = p - 1
-      let e = p
-      if (this.isMode(VimMode.VISUAL)) {
-        s = this.visualPosition ?? 0
-        if (this.textUtil.getPrevSymbol(p) !== _ENTER_ && s !== p - 1 && e < s) {
-          e = p - 1
-        }
-        this.visualCursor = e
-      }
-      this.textUtil.select(s, e)
-      if (this.isMode(VimMode.GENERAL)) {
-        if (this.textUtil.getSymbol(prevLineStart ?? 0) === _ENTER_) {
-          this.textUtil.appendText(' ', prevLineStart)
-        }
-      }
+    const prevLineEnd = this.textUtil.getPrevLineEnd(selectionEnd) ?? 0
+    const nextLineCharCount = prevLineEnd - prevLineStart
+    const currentCursorOffsetFromLineStart = (this.offsetOfLineStart ?? this.calcOffsetOfLineStart()) + 1
+    const nextSelectionEnd = prevLineStart + (currentCursorOffsetFromLineStart > nextLineCharCount ? nextLineCharCount : currentCursorOffsetFromLineStart)
+    this.textUtil.select(nextSelectionEnd - 1, nextSelectionEnd)
+  }
+
+  private selectPrevLineInVisualMode () {
+    const selectionStart = this.textUtil.getCursorPosition()
+    const selectionEnd = this.textUtil.getSelectEndPos()
+    const prevLineStart = this.textUtil.getPrevLineStart(selectionEnd) ?? 0
+    const prevLineEnd = this.textUtil.getPrevLineEnd(selectionEnd) ?? 0
+    const nextLineCharCount = prevLineEnd - prevLineStart
+    const currentCursorOffsetFromLineStart = this.offsetOfLineStart ?? this.calcOffsetOfLineStart()
+    let nextSelectionEnd = prevLineStart + (currentCursorOffsetFromLineStart > nextLineCharCount ? nextLineCharCount : currentCursorOffsetFromLineStart)
+    if (nextSelectionEnd > selectionStart) {
+      nextSelectionEnd += 1
+    }
+    const { start, end } = this.determineCursorInVisualMode(selectionStart, selectionEnd, nextSelectionEnd)
+    this.textUtil.select(start, end)
+  }
+
+  selectPrevLine () {
+    if (this.isMode(VimMode.GENERAL)) {
+      this.selectPrevLineInGeneralMode()
+    } else if (this.isMode(VimMode.VISUAL)) {
+      this.selectPrevLineInVisualMode()
     }
   }
 

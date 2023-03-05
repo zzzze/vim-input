@@ -102,52 +102,11 @@ export class Controller {
   }
 
   switchModeToGeneral = () => {
-    const cMode = this.vim.currentMode
-    if (this.vim.isMode(VimMode.GENERAL)) {
-      return
-    }
     this.vim.switchModeTo(VimMode.GENERAL)
-    const p = this.textUtil.getCursorPosition()
-    const sp = this.textUtil.getCurrLineStartPos()
-    if (p === sp) {
-      const c = this.textUtil.getCurrLineCount()
-      if (c === 0) {
-        this.textUtil.appendText(' ', p)
-      }
-      this.vim.selectNextCharacter()
-      this.vim.selectPrevCharacter()
-      if (this.textUtil.getCurrLineCount() === 1) {
-        this.textUtil.select(p, p + 1)
-      }
-    } else {
-      if (cMode === VimMode.VISUAL) {
-        this.vim.selectNextCharacter()
-      }
-      this.vim.selectPrevCharacter()
-    }
   }
 
   switchModeToVisual = () => {
-    if (this.vim.isMode(VimMode.VISUAL)) {
-      const s = this.vim.visualCursor
-      if (s === undefined) {
-        return
-      }
-      const p = this.vim.visualPosition
-      if ((p ?? 0) < s) {
-        this.textUtil.select(s - 1, s)
-      } else {
-        this.textUtil.select(s, s + 1)
-      }
-      if (this.textUtil.getPrevSymbol(s) === _ENTER_) {
-        this.textUtil.select(s, s + 1)
-      }
-      this.vim.switchModeTo(VimMode.GENERAL)
-      return
-    }
     this.vim.switchModeTo(VimMode.VISUAL)
-    this.vim.visualPosition = this.textUtil.getCursorPosition()
-    this.vim.visualCursor = undefined
   }
 
   append = () => {

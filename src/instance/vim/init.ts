@@ -27,6 +27,9 @@ export class VimBase {
    */
   visualPosition?: number = undefined
 
+
+  originalVisualPosition?: number = undefined
+
   /**
    * the end position of selected text (visual mode)
    */

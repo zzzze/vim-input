@@ -1,5 +1,7 @@
 const _ENTER_ = '\n'
 
+export type SelectionDirection = 'none' | 'forward' | 'backward'
+
 export class TextUtil {
   el?: HTMLInputElement | HTMLTextAreaElement
   constructor (element?: HTMLInputElement | HTMLTextAreaElement) {
@@ -36,29 +38,42 @@ export class TextUtil {
   }
 
   getCursorPosition () {
-    return this.el?.selectionStart ?? 0
+    if (this.el === undefined) {
+      return 0
+    }
+    console.log(this.el.selectionStart, this.el.selectionEnd, this.el.selectionDirection)
+    if (this.el.selectionDirection === 'backward') {
+      return this.el.selectionEnd ?? 0
+    }
+    return this.el.selectionStart ?? 0
   }
 
   getSelectEndPos () {
-    return this.el?.selectionEnd ?? 0
+    if (this.el === undefined) {
+      return 0
+    }
+    if (this.el.selectionDirection === 'backward') {
+      return this.el.selectionStart ?? 0
+    }
+    return this.el.selectionEnd ?? 0
   }
 
   select (start: number, end: number) {
     if (this.el === undefined) {
       return
     }
+    start = Math.max(Math.min(start, this.getText().length), 0)
+    end = Math.max(Math.min(end, this.getText().length), 0)
+    let direction: SelectionDirection = 'none'
     if (start > end) {
-      const p = start
+      const t = start
       start = end
-      end = p
+      end = t
+      direction = 'backward'
+    } else if (start < end) {
+      direction = 'forward'
     }
-    if (start < 0) {
-      start = 0
-    }
-    if (end > this.getText().length) {
-      end = this.getText().length
-    }
-    this.el.setSelectionRange(start, end)
+    this.el.setSelectionRange(start, end, direction)
     this.el.focus()
   }
 
