@@ -157,14 +157,15 @@ export class Vim extends VimBase {
   }
 
   private selectPrevCharacterInGeneralMode () {
-    const cursorPosition = this.textUtil.getCursorPosition()
-    if (this.textUtil.getPrevSymbol(cursorPosition) === _ENTER_) {
+    const selectionStart = this.textUtil.getCursorPosition()
+    if (this.textUtil.getPrevSymbol(selectionStart) === _ENTER_) {
       return
     }
-    if (cursorPosition - 1 <= 0) {
+    const nextSelectionStart = selectionStart - 1
+    if (nextSelectionStart < 0) {
       return
     }
-    this.textUtil.select(cursorPosition - 1, cursorPosition)
+    this.textUtil.select(nextSelectionStart, selectionStart)
   }
 
   private selectPrevCharacterInVisualMode () {

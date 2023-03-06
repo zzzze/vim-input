@@ -112,6 +112,25 @@ describe('Vim GENERAL Mode Movement', () => {
       vim.selectPrevCharacter()
       expect(getSelectedText()).to.equal(']')
     })
+
+    it('should select previous character correctly', () => {
+      /**
+        01|23456789
+        a-b+c,d.e/
+        f{g}h[i]?j
+        k(l)m_n=o*
+        p&q^r%s#t@
+        u~v!w:x;yz
+       */
+      const { vim, getSelectedText } = setup({
+        selectionStart: 2,
+        selectionEnd: 2,
+        switchModeTo: VimMode.GENERAL,
+      })
+      expect(getSelectedText()).to.equal('1')
+      vim.selectPrevCharacter()
+      expect(getSelectedText()).to.equal('0')
+    })
   })
 
   describe('selectNextCharacter', () => {
