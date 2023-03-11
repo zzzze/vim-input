@@ -19,6 +19,6 @@
       "@/*": ["./src/*"]
     },
   },
-  "include": ["./src", "./tests"],
-  "exclude": ["examples", "dist-js"]
+  "include": ["./src"],
+  "exclude": ["examples", "dist", "**/*.test.ts", "**/__tests__/*.ts"]
 }

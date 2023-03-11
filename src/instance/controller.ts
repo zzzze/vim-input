@@ -258,7 +258,7 @@ export class Controller {
 
   copyWord = (args: HandlerArgs) => {
     this.vim.pasteInNewLineRequest = false
-    const sp = this.textUtil.getCursorPosition()
+    const sp = this.textUtil.getSelectionStart()
     let ep: number | undefined
     this.App.repeatAction(() => {
       ep = this.vim.copyWord(ep)

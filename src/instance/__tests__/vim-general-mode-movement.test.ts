@@ -317,5 +317,28 @@ describe('Vim GENERAL Mode Movement', () => {
       vim.selectPrevLine()
       expect(getSelectedText()).to.equal('9')
     })
+
+    it('should record "offsetOfLineStart" - cursor at end of line', () => {
+      /**
+        0123456789
+        a-b+c,d.e/
+        f{g}h[i]?j|
+        k(l)m_n=o*
+        p&q^r%s#t@
+        u~v!w:x;yz
+       */
+      const { vim, getSelectedText } = setup({
+        selectionStart: 32,
+        selectionEnd: 32,
+        switchModeTo: VimMode.GENERAL,
+      })
+      vim.moveToCurrentLineHead()
+      expect(getSelectedText()).to.equal('f')
+      vim.selectPrevLine()
+      expect(getSelectedText()).to.equal('a')
+      vim.selectNextLine()
+      vim.selectNextLine()
+      expect(getSelectedText()).to.equal('k')
+    })
   })
 })

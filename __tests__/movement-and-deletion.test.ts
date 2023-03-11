@@ -5,7 +5,7 @@ import delay from './utils/delay'
 
 describe('movement and deletion (dd)', () => {
   it('should delete first line', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')
@@ -15,7 +15,7 @@ describe('movement and deletion (dd)', () => {
   })
 
   it('should delete second line', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')
@@ -26,7 +26,7 @@ describe('movement and deletion (dd)', () => {
   })
 
   it('should delete last line', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')
@@ -39,7 +39,7 @@ describe('movement and deletion (dd)', () => {
 
 describe('movement and deletion (x)', () => {
   it('should delete first character of first line', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')
@@ -49,7 +49,7 @@ describe('movement and deletion (x)', () => {
   })
 
   it('should not delete a empty line', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')
@@ -60,7 +60,7 @@ describe('movement and deletion (x)', () => {
   })
 
   it('should delete second character', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')
@@ -73,7 +73,7 @@ describe('movement and deletion (x)', () => {
 
 describe('movement and deletion (s)', () => {
   it('should delete first character of first line', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')
@@ -84,7 +84,7 @@ describe('movement and deletion (s)', () => {
   })
 
   it('should not delete a empty line', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')

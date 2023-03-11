@@ -98,7 +98,7 @@ export default class EventBinder {
       }
     } else {
       if (key !== 'Escape'.toLowerCase()) {
-        const p = this.app.textUtil.getCursorPosition()
+        const p = this.app.textUtil.getSelectionStart()
         this.app.recordText(undefined, (p - 1 >= 0 ? p - 1 : p))
       }
     }

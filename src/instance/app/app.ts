@@ -122,7 +122,7 @@ export class App extends AppBase {
 
   recordText (t?: string, p?: number) {
     t = (t === undefined) ? this.textUtil.getText() : t
-    p = (p === undefined) ? this.textUtil.getCursorPosition() : p
+    p = (p === undefined) ? this.textUtil.getSelectionStart() : p
     const data: Data = { t, p }
     const key = this.getEleKey()
     let list = this.doList[key]
@@ -188,7 +188,6 @@ export class App extends AppBase {
 
   parseRoute (code: string, ev: KeyboardEvent | InputEvent, repeatCount?: number) {
     const c = this.controller
-    // const param = num
     const vimKeys = this.router.getKeys()
     if (code === 'Escape'.toLowerCase()) {
       c.switchModeToGeneral()

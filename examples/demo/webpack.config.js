@@ -19,6 +19,7 @@ module.exports = {
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
+    mainFields: ['module', 'browser', 'main'],
   },
   output: {
     filename: 'bundle.js',
@@ -33,7 +34,7 @@ module.exports = {
   devtool: 'source-map',
   devServer: {
     static: {
-      // directory: path.join(__dirname, 'public'),
+      directory: path.join(__dirname, 'public'),
     },
     compress: true,
     port: 9000,

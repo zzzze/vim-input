@@ -37,22 +37,35 @@ export class TextUtil {
     return `${t} `
   }
 
-  getCursorPosition () {
+  isSelectForward () {
+    if (this.el === undefined) {
+      return false
+    }
+    return this.el.selectionDirection === 'forward'
+  }
+
+  isSelectBackward () {
+    if (this.el === undefined) {
+      return false
+    }
+    return this.el.selectionDirection === 'backward'
+  }
+
+  getSelectionStart () {
     if (this.el === undefined) {
       return 0
     }
-    console.log(this.el.selectionStart, this.el.selectionEnd, this.el.selectionDirection)
-    if (this.el.selectionDirection === 'backward') {
+    if (this.isSelectBackward()) {
       return this.el.selectionEnd ?? 0
     }
     return this.el.selectionStart ?? 0
   }
 
-  getSelectEndPos () {
+  getSelectionEnd () {
     if (this.el === undefined) {
       return 0
     }
-    if (this.el.selectionDirection === 'backward') {
+    if (this.isSelectBackward()) {
       return this.el.selectionStart ?? 0
     }
     return this.el.selectionEnd ?? 0
@@ -80,7 +93,7 @@ export class TextUtil {
   appendText (t: string, p?: number, paste = false, isNewLine = false) {
     const ot = this.getText()
     if (p === undefined) {
-      p = this.getCursorPosition() + 1
+      p = this.getSelectionStart() + 1
     }
     const nt = ot.slice(0, p) + t + ot.slice(p, ot.length)
     this.setText(nt)
@@ -98,7 +111,7 @@ export class TextUtil {
   insertText (t: string, p?: number, paste = false, isNewLine = false) {
     const ot = this.getText()
     if (p === undefined) {
-      p = this.getCursorPosition()
+      p = this.getSelectionStart()
     }
     const nt = ot.slice(0, p) + t + ot.slice(p, ot.length)
     this.setText(nt)
@@ -131,27 +144,16 @@ export class TextUtil {
     return undefined
   }
 
-  private isCursorInEmptyLine () {
-    const sp = this.getCursorPosition()
-    const ep = this.getSelectEndPos()
+  isCursorInEmptyLine () {
+    const sp = this.getSelectionStart()
+    const ep = this.getSelectionEnd()
     const text = this.getText(Math.max(sp - 1, 0), ep + 1)
-    return text === `${_ENTER_} ${_ENTER_}` || text === ` ${_ENTER_}`
-  }
-
-  removeEmptyLinePlaceholder () {
-    const sp = this.getCursorPosition()
-    const ep = this.getSelectEndPos()
-    if (this.isCursorInEmptyLine()) {
-      this.delete(sp, ep)
-      this.select(sp, ep)
-      return true
-    }
-    return false
+    return text === `${_ENTER_} ${_ENTER_}` || text === `${_ENTER_}${_ENTER_}` || text === ` ${_ENTER_}`
   }
 
   delSelected () {
-    const sp = this.getCursorPosition()
-    const ep = this.getSelectEndPos()
+    const sp = this.getSelectionStart()
+    const ep = this.getSelectionEnd()
     if (this.isCursorInEmptyLine()) {
       return
     }
@@ -159,14 +161,14 @@ export class TextUtil {
   }
 
   delPrevious () {
-    const sp = Math.max(this.getCursorPosition() - 1, 0)
+    const sp = Math.max(this.getSelectionStart() - 1, 0)
     const ep = sp + 1
     return this.delete(sp, ep)
   }
 
   getCountFromStartToPosInCurrLine (p?: number) {
     if (p === undefined) {
-      p = this.getCursorPosition()
+      p = this.getSelectionStart()
     }
     const s = this.getCurrLineStartPos(p)
     return (p - s) + 1
@@ -174,14 +176,14 @@ export class TextUtil {
 
   getCurrLineStartPos (p?: number) {
     if (p === undefined) {
-      p = this.getCursorPosition()
+      p = this.getSelectionStart()
     }
     return this.findSymbolBefore(p, _ENTER_)
   }
 
   getCurrLineEndPos (p?: number) {
     if (p === undefined) {
-      p = this.getCursorPosition()
+      p = this.getSelectionStart()
     }
     if (this.getSymbol(p) === _ENTER_) {
       return p
@@ -192,7 +194,7 @@ export class TextUtil {
 
   getCurrLineCount (p?: number) {
     if (p === undefined) {
-      p = this.getCursorPosition()
+      p = this.getSelectionStart()
     }
     const left = this.findSymbolBefore(p, _ENTER_)
     const right = this.findSymbolAfter(p, _ENTER_)
@@ -276,7 +278,7 @@ export class TextUtil {
 
   getCurrWordPos (p?: number): [number, number | undefined] {
     // p = p || this.getCursorPosition()
-    const pos = p !== undefined ? p : this.getCursorPosition()
+    const pos = p !== undefined ? p : this.getSelectionStart()
     // current character
     const char = this.getSymbol(pos) ?? ''
 

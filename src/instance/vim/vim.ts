@@ -4,9 +4,11 @@ import type { Data } from '../app/app'
 
 const _ENTER_ = '\n'
 
-// var _ = require('../../util/helper.js');
-// var extend = _.extend;
-// var textUtil;
+enum AddEmptyLinePlaceholderResult {
+  NOT_EMPTY_LINE,
+  NOT_NEED_TO_ADD,
+  ADDED,
+}
 
 export class Vim extends VimBase {
   offsetOfLineStart: number | undefined
@@ -18,9 +20,6 @@ export class Vim extends VimBase {
 
   resetVim () {
     this.replaceRequest = false
-    this.visualPosition = undefined
-    this.originalVisualPosition = undefined
-    this.visualCursor = undefined
   }
 
   setTextUtil (tu: TextUtil) {
@@ -35,37 +34,59 @@ export class Vim extends VimBase {
     return cursor === 0 || this.textUtil.getPrevSymbol(cursor) === _ENTER_
   }
 
-  private handleFromEditModeToGeneralOrVisualMode () {
-    const cursor = this.textUtil.getCursorPosition()
-    if (this.isAtBeginningOfLine(cursor)) {
+  textLength () {
+    return this.textUtil.getText().length
+  }
+
+  maybeAddEmptyLinePlaceholder (position: number) {
+    const lineStart = this.textUtil.getCurrLineStartPos(position)
+    if (this.textUtil.getSymbol(lineStart) === _ENTER_) {
+      this.textUtil.insertText(' ', lineStart)
+      return AddEmptyLinePlaceholderResult.ADDED
+    }
+    if (this.textUtil.getSymbol(lineStart) === ' ' && this.textUtil.getNextSymbol(lineStart) === _ENTER_) {
+      return AddEmptyLinePlaceholderResult.NOT_NEED_TO_ADD
+    }
+    return AddEmptyLinePlaceholderResult.NOT_EMPTY_LINE
+  }
+
+  removeEmptyLinePlaceholder () {
+    const sp = this.textUtil.getSelectionStart()
+    const ep = this.textUtil.getSelectionEnd()
+    if (this.textUtil.isCursorInEmptyLine()) {
+      this.textUtil.delete(sp, ep)
+      this.textUtil.select(sp, ep)
+      return true
+    }
+    return false
+  }
+
+  private handleSwitchToVisualMode () {
+    const cursor = this.textUtil.getSelectionEnd()
+    this.maybeAddEmptyLinePlaceholder(cursor)
+    if (this.isAtBeginningOfLine(cursor) || this.textUtil.isSelectBackward()) {
       this.textUtil.select(cursor, cursor + 1)
     } else {
       this.textUtil.select(cursor - 1, cursor)
     }
+    this.updateOffsetOfLineStart()
   }
 
-  switchModeTo (modeName: VimMode) {
-    // TODO: calculate cursor position when switch from visual mode, and add unit tests.
-    if (this.currentMode === modeName) {
+  switchModeTo (nextMode: VimMode) {
+    if (this.currentMode === nextMode) {
       return
     }
-    if (this.currentMode === VimMode.VISUAL) {
-      this.originalVisualPosition = 0
+    if (nextMode === VimMode.GENERAL || nextMode === VimMode.VISUAL) {
+      this.handleSwitchToVisualMode()
     }
-    if (this.currentMode === VimMode.EDIT && [VimMode.GENERAL, VimMode.VISUAL].includes(modeName)) {
-      this.handleFromEditModeToGeneralOrVisualMode()
-    }
-    if ([VimMode.GENERAL, VimMode.COMMAND, VimMode.EDIT, VimMode.VISUAL].includes(modeName)) {
-      this.currentMode = modeName
-    }
-    if (modeName === VimMode.VISUAL) {
-      this.originalVisualPosition = this.textUtil.getCursorPosition()
+    if ([VimMode.GENERAL, VimMode.COMMAND, VimMode.EDIT, VimMode.VISUAL].includes(nextMode)) {
+      this.currentMode = nextMode
     }
   }
 
   resetCursorByMouse () {
     this.switchModeTo(VimMode.GENERAL)
-    const cursorPosition: number = this.textUtil.getCursorPosition()
+    const cursorPosition: number = this.textUtil.getSelectionStart()
     const currentLineStart: number = this.textUtil.getCurrLineStartPos()
     const currentLineCharCount: number = this.textUtil.getCurrLineCount()
     if (cursorPosition === currentLineStart && currentLineCharCount === 0) {
@@ -101,27 +122,27 @@ export class Vim extends VimBase {
   }
 
   private selectNextCharacterInGeneralMode () {
-    const cursorPosition = this.textUtil.getCursorPosition()
+    const cursorPosition = this.textUtil.getSelectionStart()
     if (this.textUtil.getNextSymbol(cursorPosition) === _ENTER_) {
       return
     }
-    if (cursorPosition + 1 > this.textUtil.getText().length) {
+    if (cursorPosition + 1 > this.textLength()) {
       return
     }
     this.textUtil.select(cursorPosition + 1, cursorPosition + 2)
   }
 
   private selectNextCharacterInVisualMode () {
-    const selectionStart = this.textUtil.getCursorPosition()
-    const selectionEnd = this.textUtil.getSelectEndPos()
-    if (this.textUtil.getPrevSymbol(selectionEnd) === _ENTER_) {
-      return
-    }
+    const selectionStart = this.textUtil.getSelectionStart()
+    const selectionEnd = this.textUtil.getSelectionEnd()
     const nextSelectionEnd = selectionEnd + 1
-    if (nextSelectionEnd > this.textUtil.getText().length) {
+    if (nextSelectionEnd > this.textLength()) {
       return
     }
     const { start, end } = this.determineCursorInVisualMode(selectionStart, selectionEnd, nextSelectionEnd)
+    if (start < end && this.textUtil.getPrevSymbol(end - 1) === _ENTER_) {
+      return
+    }
     this.textUtil.select(start, end)
   }
 
@@ -137,8 +158,8 @@ export class Vim extends VimBase {
   private calcOffsetOfLineStart () {
     let cursorPosition: number | undefined
     if (this.isMode(VimMode.VISUAL)) {
-      const selectionStart = this.textUtil.getCursorPosition()
-      const selectionEnd = this.textUtil.getSelectEndPos()
+      const selectionStart = this.textUtil.getSelectionStart()
+      const selectionEnd = this.textUtil.getSelectionEnd()
       if (selectionStart > selectionEnd) {
         cursorPosition = selectionEnd
       } else if (selectionStart < selectionEnd) {
@@ -157,7 +178,7 @@ export class Vim extends VimBase {
   }
 
   private selectPrevCharacterInGeneralMode () {
-    const selectionStart = this.textUtil.getCursorPosition()
+    const selectionStart = this.textUtil.getSelectionStart()
     if (this.textUtil.getPrevSymbol(selectionStart) === _ENTER_) {
       return
     }
@@ -169,16 +190,16 @@ export class Vim extends VimBase {
   }
 
   private selectPrevCharacterInVisualMode () {
-    const selectionStart = this.textUtil.getCursorPosition()
-    const selectionEnd = this.textUtil.getSelectEndPos()
+    const selectionStart = this.textUtil.getSelectionStart()
+    const selectionEnd = this.textUtil.getSelectionEnd()
     const nextSelectionEnd = selectionEnd - 1
-    if (this.textUtil.getPrevSymbol(selectionStart) === _ENTER_) {
-      return
-    }
     if (selectionEnd < 0) {
       return
     }
     const { start, end } = this.determineCursorInVisualMode(selectionStart, selectionEnd, nextSelectionEnd)
+    if (start > end && this.textUtil.getSymbol(end) === _ENTER_) {
+      return
+    }
     this.textUtil.select(start, end)
   }
 
@@ -191,24 +212,9 @@ export class Vim extends VimBase {
     this.updateOffsetOfLineStart()
   }
 
-  correctVisualPosition () {
-    if (!this.isMode(VimMode.VISUAL)) {
-      return this.visualPosition ?? 0
-    }
-    let position = this.visualPosition ?? 0
-    if ((this.visualCursor ?? 0) <= (this.originalVisualPosition ?? 0)) {
-      this.visualPosition = (this.originalVisualPosition ?? 0) + 1
-      position = this.visualPosition ?? 0
-    } else {
-      this.visualPosition = this.originalVisualPosition ?? 0
-      position = this.visualPosition ?? 0
-    }
-    return position
-  }
-
   append () {
-    const p: number = this.textUtil.getCursorPosition()
-    if (this.textUtil.removeEmptyLinePlaceholder()) {
+    const p: number = this.textUtil.getSelectionStart()
+    if (this.removeEmptyLinePlaceholder()) {
       this.textUtil.select(p, p)
     } else {
       this.textUtil.select(p + 1, p + 1)
@@ -216,16 +222,18 @@ export class Vim extends VimBase {
   }
 
   insert () {
-    const p = this.textUtil.getCursorPosition()
+    const p = this.textUtil.getSelectionStart()
     this.textUtil.select(p, p)
   }
 
   private selectNextLineInGeneralMode () {
-    const selectionEnd = this.textUtil.getSelectEndPos()
+    const selectionEnd = this.textUtil.getSelectionEnd()
     const nextLineStart = this.textUtil.getNextLineStart(selectionEnd)
-    if (this.textUtil.getSymbol(nextLineStart) === _ENTER_) {
-      this.textUtil.insertText(' ', nextLineStart)
+    if (this.maybeAddEmptyLinePlaceholder(nextLineStart) > AddEmptyLinePlaceholderResult.NOT_EMPTY_LINE) {
       this.textUtil.select(nextLineStart, nextLineStart + 1)
+      return
+    }
+    if (nextLineStart === this.textLength()) {
       return
     }
     const nextLineEnd = this.textUtil.getNextLineEnd(selectionEnd) ?? 0
@@ -236,13 +244,19 @@ export class Vim extends VimBase {
   }
 
   private selectNextLineInVisualMode () {
-    const selectionStart = this.textUtil.getCursorPosition()
-    const selectionEnd = this.textUtil.getSelectEndPos()
+    const selectionStart = this.textUtil.getSelectionStart()
+    const selectionEnd = this.textUtil.getSelectionEnd()
     const nextLineStart = this.textUtil.getNextLineStart(selectionEnd)
+    if (nextLineStart === this.textLength()) {
+      return
+    }
     const nextLineEnd = this.textUtil.getNextLineEnd(selectionEnd) ?? 0
     const nextLineCharCount = nextLineEnd - nextLineStart
     const currentCursorOffsetFromLineStart = this.offsetOfLineStart ?? this.calcOffsetOfLineStart()
     let nextSelectionEnd = nextLineStart + (currentCursorOffsetFromLineStart > nextLineCharCount ? nextLineCharCount : currentCursorOffsetFromLineStart)
+    if (this.maybeAddEmptyLinePlaceholder(nextLineStart) > AddEmptyLinePlaceholderResult.NOT_EMPTY_LINE) {
+      nextSelectionEnd = nextLineStart
+    }
     if (nextSelectionEnd > selectionStart) {
       nextSelectionEnd += 1
     }
@@ -259,14 +273,16 @@ export class Vim extends VimBase {
   }
 
   private selectPrevLineInGeneralMode () {
-    const selectionEnd = this.textUtil.getSelectEndPos()
+    const selectionEnd = this.textUtil.getSelectionEnd()
     const prevLineStart = this.textUtil.getPrevLineStart(selectionEnd) ?? 0
-    if (this.textUtil.getSymbol(prevLineStart) === _ENTER_) {
-      this.textUtil.insertText(' ', prevLineStart)
+    if (this.maybeAddEmptyLinePlaceholder(prevLineStart) > AddEmptyLinePlaceholderResult.NOT_EMPTY_LINE) {
       this.textUtil.select(prevLineStart, prevLineStart + 1)
       return
     }
     const prevLineEnd = this.textUtil.getPrevLineEnd(selectionEnd) ?? 0
+    if (prevLineEnd === 0) {
+      return
+    }
     const nextLineCharCount = prevLineEnd - prevLineStart
     const currentCursorOffsetFromLineStart = (this.offsetOfLineStart ?? this.calcOffsetOfLineStart()) + 1
     const nextSelectionEnd = prevLineStart + (currentCursorOffsetFromLineStart > nextLineCharCount ? nextLineCharCount : currentCursorOffsetFromLineStart)
@@ -274,16 +290,19 @@ export class Vim extends VimBase {
   }
 
   private selectPrevLineInVisualMode () {
-    const selectionStart = this.textUtil.getCursorPosition()
-    const selectionEnd = this.textUtil.getSelectEndPos()
+    const selectionStart = this.textUtil.getSelectionStart()
+    const selectionEnd = this.textUtil.getSelectionEnd()
     const prevLineStart = this.textUtil.getPrevLineStart(selectionEnd) ?? 0
     const prevLineEnd = this.textUtil.getPrevLineEnd(selectionEnd) ?? 0
-    const nextLineCharCount = prevLineEnd - prevLineStart
-    const currentCursorOffsetFromLineStart = this.offsetOfLineStart ?? this.calcOffsetOfLineStart()
-    let nextSelectionEnd = prevLineStart + (currentCursorOffsetFromLineStart > nextLineCharCount ? nextLineCharCount : currentCursorOffsetFromLineStart)
-    if (nextSelectionEnd > selectionStart) {
-      nextSelectionEnd += 1
+    if (prevLineEnd === 0) {
+      return
     }
+    let nextLineCharCount = prevLineEnd - prevLineStart
+    if (this.maybeAddEmptyLinePlaceholder(prevLineStart) > AddEmptyLinePlaceholderResult.NOT_EMPTY_LINE) {
+      nextLineCharCount -= 1
+    }
+    const currentCursorOffsetFromLineStart = this.offsetOfLineStart ?? this.calcOffsetOfLineStart()
+    const nextSelectionEnd = prevLineStart + (currentCursorOffsetFromLineStart > nextLineCharCount ? nextLineCharCount : currentCursorOffsetFromLineStart)
     const { start, end } = this.determineCursorInVisualMode(selectionStart, selectionEnd, nextSelectionEnd)
     this.textUtil.select(start, end)
   }
@@ -297,38 +316,34 @@ export class Vim extends VimBase {
   }
 
   moveToCurrentLineHead () {
-    const p = this.textUtil.getCurrLineStartPos()
+    const selectionEnd = this.textUtil.getSelectionEnd()
+    const startOfLine = this.textUtil.getCurrLineStartPos(selectionEnd)
     if (this.isMode(VimMode.GENERAL)) {
-      this.textUtil.select(p, p + 1)
+      this.textUtil.select(startOfLine, startOfLine + 1)
     }
     if (this.isMode(VimMode.VISUAL)) {
-      let sp = this.visualCursor
-      if (sp === undefined) {
-        sp = this.textUtil.getCursorPosition()
-      }
-      for (sp; sp > p; sp--) {
-        this.selectPrevCharacter()
+      const selectionStart = this.textUtil.getSelectionStart()
+      if (selectionStart > selectionEnd || startOfLine < selectionStart) {
+        this.textUtil.select(selectionStart, startOfLine)
+      } else {
+        this.textUtil.select(selectionStart, startOfLine + 1)
       }
     }
-    this.updateOffsetOfLineStart(1)
+    this.updateOffsetOfLineStart(0)
   }
 
   moveToCurrentLineTail () {
-    let p = this.textUtil.getCurrLineEndPos()
+    const selectionEnd = this.textUtil.getSelectionEnd()
+    const endOfLine = this.textUtil.getCurrLineEndPos(selectionEnd)
     if (this.isMode(VimMode.GENERAL)) {
-      this.textUtil.select(p - 1, p)
+      this.textUtil.select(endOfLine - 1, endOfLine)
     }
     if (this.isMode(VimMode.VISUAL)) {
-      let sp = this.visualCursor
-      if (sp === undefined) {
-        sp = this.textUtil.getCursorPosition()
-      }
-      p = this.textUtil.getCurrLineEndPos(sp)
-      if (sp === p - 1) {
-        p = p - 1
-      }
-      for (sp; sp < p; sp++) {
-        this.selectNextCharacter()
+      const selectionStart = this.textUtil.getSelectionStart()
+      if (selectionStart > selectionEnd || endOfLine > selectionStart) {
+        this.textUtil.select(selectionStart, endOfLine)
+      } else {
+        this.textUtil.select(selectionStart, endOfLine - 1)
       }
     }
     this.updateOffsetOfLineStart(Number.MAX_SAFE_INTEGER)
@@ -347,7 +362,7 @@ export class Vim extends VimBase {
   }
 
   deleteSelected () {
-    const cursorPosition = this.textUtil.getCursorPosition()
+    const cursorPosition = this.textUtil.getSelectionStart()
     const t = this.textUtil.delSelected()
     this.textUtil.select(cursorPosition, cursorPosition + 1)
     this.pasteInNewLineRequest = false
@@ -355,7 +370,7 @@ export class Vim extends VimBase {
   }
 
   deletePrevious () {
-    const p = this.textUtil.getCursorPosition()
+    const p = this.textUtil.getSelectionStart()
     const t = this.textUtil.delPrevious()
     this.textUtil.select(p - 1, p)
     this.pasteInNewLineRequest = false
@@ -393,26 +408,24 @@ export class Vim extends VimBase {
     if (this.isMode(VimMode.GENERAL)) {
       this.textUtil.select(0, 1)
     } else if (this.isMode(VimMode.VISUAL)) {
-      this.textUtil.select(this.visualPosition ?? 0, 0)
-      this.visualCursor = 0
+      this.textUtil.select(this.textUtil.getSelectionStart(), 0)
     }
   }
 
   moveToLastLine () {
-    const lp = this.textUtil.getText().length
+    const lp = this.textLength()
     const sp = this.textUtil.getCurrLineStartPos(lp - 1)
     if (this.isMode(VimMode.GENERAL)) {
       this.textUtil.select(sp, sp + 1)
     } else if (this.isMode(VimMode.VISUAL)) {
-      this.textUtil.select(this.visualPosition ?? 0, sp + 1)
-      this.visualCursor = sp + 1
+      this.textUtil.select(this.textUtil.getSelectionStart(), sp + 1)
     }
   }
 
   moveToNextWord () {
     let p
     if (this.isMode(VimMode.VISUAL)) {
-      p = this.visualCursor
+      p = this.textUtil.getSelectionEnd()
     }
     const poses = this.textUtil.getCurrWordPos(p)
     // poses[1] is next word`s start position
@@ -421,8 +434,8 @@ export class Vim extends VimBase {
       if (this.isMode(VimMode.GENERAL)) {
         this.textUtil.select(sp, sp + 1)
       } else if (this.isMode(VimMode.VISUAL)) {
-        this.textUtil.select(this.visualPosition ?? 0, sp + 1)
-        this.visualCursor = sp + 1
+        const selectionStart = this.textUtil.getSelectionStart()
+        this.textUtil.select(selectionStart, selectionStart > sp ? sp : sp + 1)
       }
     }
     this.updateOffsetOfLineStart()
@@ -443,348 +456,3 @@ export class Vim extends VimBase {
     return t
   }
 }
-
-// exports._init = function (tu) {
-//     extend(this, require('./init.js'));
-//     textUtil = tu;
-// };
-//
-// exports.resetVim = function() {
-//     this.replaceRequest = false;
-//     this.visualPosition = undefined;
-//     this.visualCursor = undefined;
-// }
-//
-// exports.setTextUtil = function(tu) {
-//     textUtil = tu;
-// }
-//
-// exports.isMode = function (modeName) {
-//     return this.currentMode === modeName
-// };
-//
-// exports.switchModeTo = function (modeName) {
-//     if (modeName === GENERAL || modeName === COMMAND || modeName === EDIT || modeName === VISUAL) {
-//         this.currentMode = modeName;
-//     }
-// };
-//
-// exports.resetCursorByMouse = function() {
-//     this.switchModeTo(GENERAL);
-//     var p = textUtil.getCursorPosition();
-//     var sp = textUtil.getCurrLineStartPos();
-//     var c = textUtil.getCurrLineCount();
-//     if (p === sp && !c) {
-//         textUtil.appendText(' ', p);
-//     }
-//     var ns = textUtil.getNextSymbol(p-1);
-//     if (ns && ns !== _ENTER_) {
-//         textUtil.select(p, p+1);
-//     } else {
-//         textUtil.select(p-1, p);
-//     }
-// };
-//
-// exports.selectNextCharacter = function() {
-//     var p = textUtil.getCursorPosition();
-//     if (this.isMode(VISUAL) && this.visualCursor !== undefined) {
-//         p = this.visualCursor;
-//     }
-//     if (this.isMode(GENERAL) && textUtil.getNextSymbol(p) == _ENTER_) {
-//         return;
-//     }
-//     if (this.isMode(VISUAL) && textUtil.getNextSymbol(p-1) == _ENTER_) {
-//         return;
-//     }
-//     if (p+1 <= textUtil.getText().length) {
-//         var s = p+1;
-//         if (this.isMode(VISUAL)) {
-//             s = this.visualPosition;
-//             this.visualCursor = p+1;
-//             var f1 = this.visualCursor;
-//             var f2 = this.visualPosition;
-//             var f3 = textUtil.getCursorPosition();
-//         }
-//         //default
-//         textUtil.select(s, p+2);
-//         //special
-//         if (this.isMode(VISUAL)) {
-//             if (s == p) {
-//                 textUtil.select(s, p+2);
-//                 this.visualCursor = p+2;
-//             } else {
-//                 textUtil.select(s, p+1);
-//             }
-//             if (f2 > f1 && f2 > f3) {
-//                 textUtil.select(s, p+1);
-//             } else if (f1 == f2 && f2 - f3 == 1) {
-//                 //textUtil.select(s, p+1);
-//                 this.visualPosition = f2-1;
-//                 this.visualCursor = p+2;
-//                 textUtil.select(s-1, p+2);
-//             }
-//         }
-//     }
-// };
-// exports.selectPrevCharacter = function() {
-//     var p = textUtil.getCursorPosition();
-//     if (this.isMode(VISUAL) && this.visualCursor !== undefined) {
-//         p = this.visualCursor;
-//     }
-//     if (textUtil.getPrevSymbol(p) == _ENTER_) {
-//         return;
-//     }
-//     var s = p-1;
-//     if (this.isMode(VISUAL)) {
-//         s = this.visualPosition;
-//         if (s < p && textUtil.getPrevSymbol(p-1) == _ENTER_) {
-//             return;
-//         }
-//         if (s == p) {
-//             p = p+1;
-//             s = s-1;
-//             this.visualPosition = p;
-//             this.visualCursor = s;
-//         } else if (p == s+1) {
-//             s = s+1;
-//             p = p-2;
-//             this.visualPosition = s;
-//             this.visualCursor = p;
-//         } else if (p == s-1) {
-//             p = s-2;
-//             this.visualCursor = p;
-//         } else {
-//             //default
-//             if (!(s < p && (p+1 == textUtil.getSelectEndPos()))) {
-//                 p = p-1;
-//             }
-//             this.visualCursor = p;
-//         }
-//     }
-//     if (this.visualCursor < 0) {
-//         this.visualCursor = 0;
-//     }
-//     if ((this.isMode(GENERAL) && s>=0) || this.isMode(VISUAL)) {
-//         textUtil.select(s, p);
-//     }
-// };
-//
-//
-// exports.append = function () {
-//     var p = textUtil.getCursorPosition();
-//     textUtil.select(p+1, p+1);
-// };
-//
-// exports.insert = function () {
-//     var p = textUtil.getCursorPosition();
-//     textUtil.select(p, p);
-// };
-//
-// exports.selectNextLine = function () {
-//     var sp = undefined;
-//     if (this.isMode(VISUAL) && this.visualCursor !== undefined) {
-//         sp = this.visualCursor;
-//     }
-//     var nl = textUtil.getNextLineStart(sp);
-//     var nr = textUtil.getNextLineEnd(sp);
-//     var nc = nr - nl;
-//     var cc = textUtil.getCountFromStartToPosInCurrLine(sp);
-//     if (this.isMode(VISUAL) && this.visualCursor != undefined && this.visualPosition < this.visualCursor) {
-//         cc = cc-1;
-//     }
-//     var p = nl + (cc > nc ? nc : cc);
-//     if (p <= textUtil.getText().length) {
-//         var s = p-1;
-//         if (this.isMode(VISUAL)) {
-//             s = this.visualPosition;
-//             if (s > p) {
-//                 p = p-1;
-//             }
-//             this.visualCursor = p;
-//             if (textUtil.getSymbol(nl) == _ENTER_) {
-//                 textUtil.appendText(' ', nl);
-//                 p = p+1;
-//                 this.visualCursor = p;
-//                 if (s > p) {
-//                     //因为新加了空格符，导致字符总数增加，visual开始位置相应增加
-//                     s += 1;
-//                     this.visualPosition = s;
-//                 }
-//             }
-//         }
-//         textUtil.select(s, p);
-//         if (this.isMode(GENERAL)) {
-//             if (textUtil.getSymbol(nl) == _ENTER_) {
-//                 textUtil.appendText(' ', nl);
-//             }
-//         }
-//     }
-// };
-//
-// exports.selectPrevLine = function () {
-//     var sp = undefined;
-//     if (this.isMode(VISUAL) && this.visualCursor !== undefined) {
-//         sp = this.visualCursor;
-//     }
-//     var pl = textUtil.getPrevLineStart(sp);
-//     var pr = textUtil.getPrevLineEnd(sp);
-//     var cc = textUtil.getCountFromStartToPosInCurrLine(sp);
-//     if (this.isMode(VISUAL) && this.visualCursor != undefined && this.visualPosition < this.visualCursor) {
-//         cc = cc-1;
-//     }
-//     var pc = pr - pl;
-//     var p = pl + (cc > pc ? pc : cc);
-//     if (p >= 0) {
-//         var s = p-1;
-//         var e = p;
-//         if (this.isMode(VISUAL)) {
-//             s = this.visualPosition;
-//             if (textUtil.getPrevSymbol(p) != _ENTER_ && s != p-1 && e < s) {
-//                 e = p-1;
-//             }
-//             this.visualCursor = e;
-//         }
-//         textUtil.select(s, e);
-//         if (this.isMode(GENERAL)) {
-//             if (textUtil.getSymbol(pl) == _ENTER_) {
-//                 textUtil.appendText(' ', pl);
-//             }
-//         }
-//     }
-// };
-//
-// exports.moveToCurrentLineHead = function () {
-//     var p = textUtil.getCurrLineStartPos();
-//     if (this.isMode(GENERAL)) {
-//         textUtil.select(p, p+1);
-//     }
-//     if (this.isMode(VISUAL)) {
-//         var sp = this.visualCursor;
-//         if (sp === undefined) {
-//             sp = textUtil.getCursorPosition();
-//         }
-//         for (sp;sp>p;sp--) {
-//             this.selectPrevCharacter();
-//         }
-//     }
-// };
-//
-// exports.moveToCurrentLineTail = function () {
-//     var p = textUtil.getCurrLineEndPos();
-//     if (this.isMode(GENERAL)) {
-//         textUtil.select(p - 1, p);
-//     }
-//     if (this.isMode(VISUAL)) {
-//         var sp = this.visualCursor;
-//         if (sp === undefined) {
-//             sp = textUtil.getCursorPosition();
-//         }
-//         p = textUtil.getCurrLineEndPos(sp);
-//         if (sp == p-1) {
-//             p = p-1
-//         }
-//         for (sp;sp<p;sp++){
-//             this.selectNextCharacter();
-//         }
-//     }
-// };
-//
-// exports.appendNewLine = function () {
-//     var p = textUtil.getCurrLineEndPos();
-//     textUtil.appendText(_ENTER_ + " ", p);
-//     textUtil.select(p+1, p+1);
-// };
-//
-// exports.insertNewLine = function () {
-//     var p = textUtil.getCurrLineStartPos();
-//     textUtil.appendText(" " + _ENTER_, p);
-//     textUtil.select(p, p);
-// };
-//
-// exports.deleteSelected = function () {
-//     var p = textUtil.getCursorPosition();
-//     var t = textUtil.delSelected();
-//     textUtil.select(p, p+1);
-//     this.pasteInNewLineRequest = false;
-//     return t;
-// };
-//
-// exports.copyCurrentLine = function (p) {
-//     var sp = textUtil.getCurrLineStartPos(p);
-//     var ep = textUtil.getCurrLineEndPos(p);
-//     //clipboard = textUtil.getText(sp, ep);
-//     this.pasteInNewLineRequest= true;
-//     return textUtil.getText(sp, ep+1);
-// };
-//
-// exports.backToHistory = function (list) {
-//     if (list) {
-//         var data = list.pop();
-//         if (data !== undefined) {
-//             textUtil.setText(data.t);
-//             textUtil.select(data.p, data.p+1);
-//         }
-//     }
-// };
-//
-// exports.delCurrLine = function () {
-//     var sp = textUtil.getCurrLineStartPos();
-//     var ep = textUtil.getCurrLineEndPos();
-//     var t = textUtil.delete(sp, ep+1);
-//     textUtil.select(sp, sp+1);
-//     this.pasteInNewLineRequest = true;
-//     return t;
-// };
-//
-// exports.moveToFirstLine = function () {
-//     if (this.isMode(GENERAL)) {
-//         textUtil.select(0,1);
-//     } else if (this.isMode(VISUAL)) {
-//         textUtil.select(this.visualPosition, 0);
-//         this.visualCursor = 0;
-//     }
-// };
-//
-// exports.moveToLastLine = function () {
-//     var lp = textUtil.getText().length;
-//     var sp = textUtil.getCurrLineStartPos(lp-1);
-//     if (this.isMode(GENERAL)) {
-//         textUtil.select(sp, sp+1);
-//     } else if (this.isMode(VISUAL)) {
-//         textUtil.select(this.visualPosition, sp+1);
-//         this.visualCursor = sp+1;
-//     }
-// };
-//
-// exports.moveToNextWord = function () {
-//     var p;
-//     if (this.isMode(VISUAL)) {
-//         p = this.visualCursor;
-//     }
-//     var poses = textUtil.getCurrWordPos(p);
-//     //poses[1] is next word`s start position
-//     var sp = poses[1];
-//     if (sp) {
-//         if (this.isMode(GENERAL)) {
-//             textUtil.select(sp, sp+1);
-//         } else if (this.isMode(VISUAL)) {
-//             textUtil.select(this.visualPosition, sp+1);
-//             this.visualCursor = sp+1;
-//         }
-//     }
-// };
-//
-// exports.copyWord = function (p) {
-//     var poses = textUtil.getCurrWordPos(p);
-//     return poses[1];
-// };
-//
-// exports.deleteWord = function () {
-//     var t;
-//     var poses = textUtil.getCurrWordPos();
-//     if (poses[1]) {
-//         t = textUtil.delete(poses[0], poses[1]);
-//         textUtil.select(poses[0], poses[0]+1)
-//     }
-//     return t;
-// };

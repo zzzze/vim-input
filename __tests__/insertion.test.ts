@@ -5,7 +5,7 @@ import delay from './utils/delay'
 
 describe('insertion (o)', async () => {
   it('should append new line after current line', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')
@@ -16,7 +16,7 @@ describe('insertion (o)', async () => {
   })
 
   it('should append new line before current line', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')
@@ -29,7 +29,7 @@ describe('insertion (o)', async () => {
 
 describe('insertion (a)', async () => {
   it('should append characters in most front of empty line', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')
@@ -41,8 +41,8 @@ describe('insertion (a)', async () => {
   })
 
   // FIXME
-  it.todo('should restore empty line placeholder if nothing appended to the empty line', async () => {
-    const { dom, element } = await prepare('tests/fixtures/letter.html')
+  it.only('should restore empty line placeholder if nothing appended to the empty line', async () => {
+    const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)
     controller.focus()
     await controller.pressKey('Escape')
