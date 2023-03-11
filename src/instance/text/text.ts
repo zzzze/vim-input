@@ -129,8 +129,8 @@ export class TextUtil {
   delete (sp: number, ep: number) {
     if (sp > ep) {
       const p = ep
-      sp = ep
-      ep = p
+      ep = sp
+      sp = p
     }
     if (ep - sp > 0) {
       const t = this.getText()

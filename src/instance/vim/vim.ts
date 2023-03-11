@@ -72,12 +72,27 @@ export class Vim extends VimBase {
     this.updateOffsetOfLineStart()
   }
 
+  private handleSwitchToEditMode () {
+    const selectionStart = this.textUtil.getSelectionStart()
+    const selectionEnd = this.textUtil.getSelectionEnd()
+    this.maybeAddEmptyLinePlaceholder(selectionEnd)
+    if (this.textUtil.isSelectForward() && selectionStart !== selectionEnd) {
+      this.textUtil.select(selectionEnd - 1, selectionEnd - 1)
+    } else {
+      this.textUtil.select(selectionEnd, selectionEnd)
+    }
+    this.updateOffsetOfLineStart()
+  }
+
   switchModeTo (nextMode: VimMode) {
     if (this.currentMode === nextMode) {
       return
     }
     if (nextMode === VimMode.GENERAL || nextMode === VimMode.VISUAL) {
       this.handleSwitchToVisualMode()
+    }
+    if (nextMode === VimMode.EDIT) {
+      this.handleSwitchToEditMode()
     }
     if ([VimMode.GENERAL, VimMode.COMMAND, VimMode.EDIT, VimMode.VISUAL].includes(nextMode)) {
       this.currentMode = nextMode
@@ -362,9 +377,15 @@ export class Vim extends VimBase {
   }
 
   deleteSelected () {
-    const cursorPosition = this.textUtil.getSelectionStart()
+    const selectionStart = this.textUtil.getSelectionStart()
+    const selectionEnd = this.textUtil.getSelectionEnd()
+    const isSelectForward = this.textUtil.isSelectForward()
     const t = this.textUtil.delSelected()
-    this.textUtil.select(cursorPosition, cursorPosition + 1)
+    if (isSelectForward) {
+      this.textUtil.select(selectionStart, selectionStart + 1)
+    } else {
+      this.textUtil.select(selectionEnd, selectionEnd + 1)
+    }
     this.pasteInNewLineRequest = false
     return t
   }

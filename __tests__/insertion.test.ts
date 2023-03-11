@@ -40,7 +40,6 @@ describe('insertion (a)', async () => {
     expect(element.value).toMatchSnapshot()
   })
 
-  // FIXME
   it.only('should restore empty line placeholder if nothing appended to the empty line', async () => {
     const { dom, element } = await prepare('__tests__/fixtures/letter.html')
     const controller = new ElementController(dom, element, dom.window.app.vim)

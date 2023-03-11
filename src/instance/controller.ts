@@ -216,9 +216,13 @@ export class Controller {
   }
 
   delCharAfter = (args: HandlerArgs) => {
-    this.App.repeatAction(() => {
-      return this.vim.deleteSelected()
-    }, args.repeatCount)
+    if (this.vim.isMode(VimMode.VISUAL)) {
+      this.vim.deleteSelected()
+    } else if (this.vim.isMode(VimMode.GENERAL)) {
+      this.App.repeatAction(() => {
+        return this.vim.deleteSelected()
+      }, args.repeatCount)
+    }
     this.switchModeToGeneral()
   }
 
