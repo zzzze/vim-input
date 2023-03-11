@@ -14,7 +14,7 @@ export function ready (router: Router) {
   router.code('ArrowRight', 'ArrowRight').action('Right', HandlerKey.SelectNextCharacter)
   router.code('ArrowDown', 'ArrowDown').action('Down', HandlerKey.SelectNextLine)
   router.code('Insert', 'Insert').action('Insert', HandlerKey.Insert)
-  router.code('Delete', 'Delete').action('Delete', HandlerKey.DelCharAfter)?.record(true)
+  router.code('Delete', 'Delete').action('Delete', HandlerKey.DelCharAfter, VimMode.GENERAL)?.record(true)
 
   // ---------------------------
   // vim feature keys:
@@ -51,10 +51,10 @@ export function ready (router: Router) {
   // v
   router.code('v', 'v').action('v', HandlerKey.SwitchModeToVisual)?.action('V', HandlerKey.SwitchModeToVisual)
   // delete character
-  router.code('x', 'x').action('x', HandlerKey.DelCharAfter)?.action('X', HandlerKey.DelCharBefore)?.record(true)
+  router.code('x', 'x').action('x', HandlerKey.DelCharAfter, VimMode.GENERAL)?.action('X', HandlerKey.DelCharBefore, VimMode.GENERAL)?.record(true)
   router.code('s', 's').action('s', HandlerKey.DelCharAfter, VimMode.EDIT)?.record(true)
   // delete selected char in visual mode
-  router.code('d', 'd').action('d', HandlerKey.DelCharAfter)?.mode(VimMode.VISUAL)?.record(true)
+  router.code('d', 'd').action('d', HandlerKey.DelCharAfter, VimMode.GENERAL)?.mode(VimMode.VISUAL)?.record(true)
   // delete line
   router.code('d_d', 'dd').action('dd', HandlerKey.DelCurrLine)?.record(true)
   // G

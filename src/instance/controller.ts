@@ -223,7 +223,6 @@ export class Controller {
         return this.vim.deleteSelected()
       }, args.repeatCount)
     }
-    this.switchModeToGeneral()
   }
 
   delCharBefore = (args: HandlerArgs) => {

@@ -55,7 +55,6 @@ export class Vim extends VimBase {
     const ep = this.textUtil.getSelectionEnd()
     if (this.textUtil.isCursorInEmptyLine()) {
       this.textUtil.delete(sp, ep)
-      this.textUtil.select(sp, ep)
       return true
     }
     return false
@@ -73,10 +72,9 @@ export class Vim extends VimBase {
   }
 
   private handleSwitchToEditMode () {
-    const selectionStart = this.textUtil.getSelectionStart()
     const selectionEnd = this.textUtil.getSelectionEnd()
     this.maybeAddEmptyLinePlaceholder(selectionEnd)
-    if (this.textUtil.isSelectForward() && selectionStart !== selectionEnd) {
+    if (this.textUtil.isSelectForward()) {
       this.textUtil.select(selectionEnd - 1, selectionEnd - 1)
     } else {
       this.textUtil.select(selectionEnd, selectionEnd)
@@ -141,7 +139,7 @@ export class Vim extends VimBase {
     if (this.textUtil.getNextSymbol(cursorPosition) === _ENTER_) {
       return
     }
-    if (cursorPosition + 1 > this.textLength()) {
+    if (cursorPosition + 1 >= this.textLength()) {
       return
     }
     this.textUtil.select(cursorPosition + 1, cursorPosition + 2)
@@ -229,11 +227,8 @@ export class Vim extends VimBase {
 
   append () {
     const p: number = this.textUtil.getSelectionStart()
-    if (this.removeEmptyLinePlaceholder()) {
-      this.textUtil.select(p, p)
-    } else {
-      this.textUtil.select(p + 1, p + 1)
-    }
+    this.removeEmptyLinePlaceholder()
+    this.textUtil.select(p, p + 1)
   }
 
   insert () {
