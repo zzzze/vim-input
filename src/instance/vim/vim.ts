@@ -227,8 +227,11 @@ export class Vim extends VimBase {
 
   append () {
     const p: number = this.textUtil.getSelectionStart()
-    this.removeEmptyLinePlaceholder()
-    this.textUtil.select(p, p + 1)
+    if (this.removeEmptyLinePlaceholder()) {
+      this.textUtil.select(p, p + 1)
+    } else {
+      this.textUtil.select(p + 1, p + 1)
+    }
   }
 
   insert () {

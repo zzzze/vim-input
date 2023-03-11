@@ -77,7 +77,6 @@ export default class EventBinder {
   }
 
   onKeyDown = (e: KeyboardEvent) => {
-    console.log(e)
     let replaced = false
     const key = e.key.toLowerCase()
     if (this.app === undefined) {

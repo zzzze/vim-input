@@ -199,11 +199,7 @@ export class App extends AppBase {
         return
       }
       if (ev instanceof KeyboardEvent && ev.shiftKey) {
-        if (keyName === keyName.toUpperCase()) {
-          keyName = `shift_${keyName}`
-        } else {
-          keyName = keyName.toUpperCase()
-        }
+        keyName = `shift_${keyName}`
       }
       if (ev instanceof KeyboardEvent && ev.altKey) {
         keyName = `alt_${keyName}`
