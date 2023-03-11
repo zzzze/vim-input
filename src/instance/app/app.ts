@@ -189,11 +189,7 @@ export class App extends AppBase {
   parseRoute (code: string, ev: KeyboardEvent | InputEvent, repeatCount?: number) {
     const c = this.controller
     const vimKeys = this.router.getKeys()
-    if (code === 'Escape'.toLowerCase()) {
-      c.switchModeToGeneral()
-      return
-    }
-    if ((vimKeys[code] != null) && (this.vim.isMode(VimMode.GENERAL) || this.vim.isMode(VimMode.VISUAL))) {
+    if (vimKeys[code] != null) {
       const mode = vimKeys[code]?.mode
       if (mode !== undefined && mode !== '' && !this.vim.isMode(mode)) {
         return false
@@ -208,6 +204,12 @@ export class App extends AppBase {
         } else {
           keyName = keyName.toUpperCase()
         }
+      }
+      if (ev instanceof KeyboardEvent && ev.altKey) {
+        keyName = `alt_${keyName}`
+      }
+      if (ev instanceof KeyboardEvent && ev.ctrlKey) {
+        keyName = `ctrl_${keyName}`
       }
       const key = vimKeys[code.toString()]
       if (key === undefined) {

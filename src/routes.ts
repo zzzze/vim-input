@@ -67,4 +67,7 @@ export function ready (router: Router) {
   router.code('y_w', 'yw').action('yw', HandlerKey.CopyWord) // FIXME: maybe could not use _ as connector
   // delete one word
   router.code('d_w', 'dw').action('dw', HandlerKey.DeleteWord)?.record(true)
+
+  router.code('Escape', 'Escape').action('Escape', HandlerKey.SwitchModeToGeneral)?.record(true)
+  router.code('[', '[').action('ctrl_[', HandlerKey.SwitchModeToGeneral)?.record(true)
 }
