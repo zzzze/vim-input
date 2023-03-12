@@ -61,12 +61,16 @@ export class Vim extends VimBase {
   }
 
   private handleSwitchToVisualMode () {
-    const cursor = this.textUtil.getSelectionEnd()
-    this.maybeAddEmptyLinePlaceholder(cursor)
-    if (this.isAtBeginningOfLine(cursor) || this.textUtil.isSelectBackward()) {
-      this.textUtil.select(cursor, cursor + 1)
+    const selectionStart = this.textUtil.getSelectionStart()
+    const selectionEnd = this.textUtil.getSelectionEnd()
+    this.maybeAddEmptyLinePlaceholder(selectionEnd)
+    if (Math.abs(selectionStart - selectionEnd) === 1) {
+      return
+    }
+    if (this.isAtBeginningOfLine(selectionEnd) || this.textUtil.isSelectBackward()) {
+      this.textUtil.select(selectionEnd, selectionEnd + 1)
     } else {
-      this.textUtil.select(cursor - 1, cursor)
+      this.textUtil.select(selectionEnd - 1, selectionEnd)
     }
     this.updateOffsetOfLineStart()
   }
@@ -380,7 +384,12 @@ export class Vim extends VimBase {
     const isSelectForward = this.textUtil.isSelectForward()
     const t = this.textUtil.delSelected()
     if (isSelectForward) {
-      this.textUtil.select(selectionStart, selectionStart + 1)
+      const textLength = this.textLength()
+      if (selectionStart >= textLength) {
+        this.textUtil.select(textLength - 1, textLength)
+      } else {
+        this.textUtil.select(selectionStart, selectionStart + 1)
+      }
     } else {
       this.textUtil.select(selectionEnd, selectionEnd + 1)
     }
