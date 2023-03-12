@@ -186,11 +186,22 @@ export class App extends AppBase {
     return undefined
   }
 
+  public appendLineTail () {
+    this.controller.appendLineTail()
+  }
+
+  public append () {
+    this.controller.append()
+  }
+
   parseRoute (code: string, ev: KeyboardEvent | InputEvent, repeatCount?: number) {
     const c = this.controller
     const vimKeys = this.router.getKeys()
     if (vimKeys[code] != null) {
       const mode = vimKeys[code]?.mode
+      if ((mode === undefined || mode === '') && this.vim.isMode(VimMode.EDIT)) {
+        return false
+      }
       if (mode !== undefined && mode !== '' && !this.vim.isMode(mode)) {
         return false
       }

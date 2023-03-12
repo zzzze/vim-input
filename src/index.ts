@@ -77,3 +77,4 @@ const vim = {
 }
 
 export default vim
+export type { App }

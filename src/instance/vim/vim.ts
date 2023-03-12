@@ -40,7 +40,8 @@ export class Vim extends VimBase {
 
   maybeAddEmptyLinePlaceholder (position: number) {
     const lineStart = this.textUtil.getCurrLineStartPos(position)
-    if (this.textUtil.getSymbol(lineStart) === _ENTER_) {
+    const textLen = this.textLength()
+    if (this.textUtil.getSymbol(lineStart) === _ENTER_ || textLen === 0) {
       this.textUtil.insertText(' ', lineStart)
       return AddEmptyLinePlaceholderResult.ADDED
     }
@@ -53,6 +54,11 @@ export class Vim extends VimBase {
   removeEmptyLinePlaceholder () {
     const sp = this.textUtil.getSelectionStart()
     const ep = this.textUtil.getSelectionEnd()
+    const textLen = this.textLength()
+    if (textLen === 1 && this.textUtil.getSymbol(sp) === ' ') {
+      this.textUtil.delete(0, 1)
+      return true
+    }
     if (this.textUtil.isCursorInEmptyLine()) {
       this.textUtil.delete(sp, ep)
       return true
@@ -60,7 +66,7 @@ export class Vim extends VimBase {
     return false
   }
 
-  private handleSwitchToVisualMode () {
+  private handleSwitchToVisualOrGeneralMode () {
     const selectionStart = this.textUtil.getSelectionStart()
     const selectionEnd = this.textUtil.getSelectionEnd()
     this.maybeAddEmptyLinePlaceholder(selectionEnd)
@@ -77,7 +83,6 @@ export class Vim extends VimBase {
 
   private handleSwitchToEditMode () {
     const selectionEnd = this.textUtil.getSelectionEnd()
-    this.maybeAddEmptyLinePlaceholder(selectionEnd)
     if (this.textUtil.isSelectForward()) {
       this.textUtil.select(selectionEnd - 1, selectionEnd - 1)
     } else {
@@ -91,7 +96,7 @@ export class Vim extends VimBase {
       return
     }
     if (nextMode === VimMode.GENERAL || nextMode === VimMode.VISUAL) {
-      this.handleSwitchToVisualMode()
+      this.handleSwitchToVisualOrGeneralMode()
     }
     if (nextMode === VimMode.EDIT) {
       this.handleSwitchToEditMode()
@@ -240,6 +245,7 @@ export class Vim extends VimBase {
 
   insert () {
     const p = this.textUtil.getSelectionStart()
+    this.removeEmptyLinePlaceholder()
     this.textUtil.select(p, p)
   }
 
@@ -393,6 +399,7 @@ export class Vim extends VimBase {
     } else {
       this.textUtil.select(selectionEnd, selectionEnd + 1)
     }
+    this.maybeAddEmptyLinePlaceholder(this.textUtil.getSelectionStart())
     this.pasteInNewLineRequest = false
     return t
   }

@@ -134,10 +134,7 @@ export class TextUtil {
     }
     if (ep - sp > 0) {
       const t = this.getText()
-      let nt = t.slice(0, sp) + t.slice(ep)
-      if (nt === '') {
-        nt = ' '
-      }
+      const nt = t.slice(0, sp) + t.slice(ep)
       this.setText(nt)
       return t.slice(sp, ep)
     }
